@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Reviewer"
+  short_description: "Жесткое ревью correctness, quality и рисков"
+  default_prompt: "Use $code-reviewer. Сделай high-signal code review этого изменения или проекта"

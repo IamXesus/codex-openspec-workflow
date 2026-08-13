@@ -1,0 +1,103 @@
+name: evidence-heavy
+version: 1
+description: Evidence-bound workflow for high-risk changes - proposal → specs → design → tasks
+artifacts:
+  - id: proposal
+    generates: proposal.md
+    description: Concise intent, evidence, scope, and unknowns
+    template: proposal.md
+    instruction: |
+      State why the confirmed change is needed and what observable behavior changes.
+      The Why text must contain at least 50 meaningful characters for strict validation.
+      Separate inspected facts from observations, hypotheses, and open questions.
+      List only capabilities supported by the request or inspected contracts.
+      If a material unknown changes behavior, data, security, cost, or an external effect,
+      add one unchecked Q-* item and ask the user instead of guessing.
+      Record any material decision as a DEC-* block with Status and Source. Repository
+      and external evidence can support only a proposed decision; accept it only after explicit
+      user approval recorded as user:USER-*.
+      Ask only for user-owned behavior or policy choices. Related proposed decisions may be
+      shown in one concise decision checkpoint and accepted by one explicit approval that names
+      the displayed DEC ids; partial approval leaves the rest proposed.
+      Do not invent a capability to satisfy validation. For a pure refactor, tooling, or
+      documentation/operations change with no behavior delta, set skip_specs: true in
+      .openspec.yaml.
+    requires: []
+  - id: specs
+    generates: "specs/**/*.md"
+    description: Source-backed behavior deltas
+    template: spec.md
+    instruction: |
+      Create one delta spec per confirmed capability. Use OpenSpec ADDED, MODIFIED,
+      REMOVED, or RENAMED requirement sections. Each Requirement needs a unique ID: REQ-*, Status, and Source
+      metadata, normative SHALL/MUST behavior, and at least one #### Scenario with WHEN/THEN.
+      An accepted requirement may cite only exact user authority (user:USER-*) or an
+      existing accepted decision (decision:DEC-*). Repository paths and external URLs are
+      observational evidence, not authority for new normative behavior. Status is accepted
+      only when the cited user evidence semantically entails the entire behavior; otherwise keep the
+      uncertainty in proposal.md and stop. Preserve full existing requirement blocks for
+      MODIFIED changes. New capabilities need a Purpose of at least 50 meaningful
+      characters. A RENAMED section needs accepted Status and Source metadata before its
+      FROM/TO pairs.
+    requires: [proposal]
+  - id: design
+    generates: design.md
+    description: Technical decisions, risks, rollout, and rollback
+    template: design.md
+    instruction: |
+      Explain only decisions needed to implement accepted requirements. Record each material
+      decision as `### DEC-*` with Status and Source; do not create a second id for a decision
+      already recorded in proposal. Record context,
+      goals and non-goals, decisions with rationale, risks and mitigations, migration and
+      rollback only when applicable. Record nonblocking uncertainty as OBS/HYP, never Q-*; every Q-* is blocking. A question that changes requirements,
+      architecture, tasks, security, data, cost, or external effects is blocking: ask the
+      user instead of selecting a plausible default.
+    requires: [proposal, specs]
+  - id: tasks
+    generates: tasks.md
+    description: Minimal implementation checklist derived from accepted requirements and design
+    template: tasks.md
+    instruction: |
+      Before writing tasks, resolve the active openspec-workflow skill root and run as a separate fail-closed step:
+      `python <openspec-workflow-skill-root>/scripts/validate_change.py --repo <repo> --change <change-name>`.
+      Do not substitute native OpenSpec status/validation. A nonzero exit blocks tasks. Then run a
+      read-only semantic entailment review. Resolve every blocking Q-* item and proposed material decision.
+      Merely finding a cited id, file, line, or URL is not proof that it supports the requirement.
+      Derive every task from accepted requirements and recorded design decisions. Preserve contract v3
+      and put one `openspec-trace` marker with exact REQ ids and concrete planned verification on each
+      implementation checkbox. For explicit `skip_specs: true`, use `requirements=none` while still recording concrete planned verification. The validator prints the read-only requirement-to-decision-to-task-to-verification
+      matrix; do not create another artifact. Group tasks
+      under a small number of semantic implementation waves, not arbitrary task counts. Mark every
+      wave heading with a unique `<!-- openspec-wave:<id> -->`. End each
+      wave with a review-checkpoint checkbox after its targeted verification; place a checkpoint
+      before downstream work depends on a changed contract. Include one final full-diff release
+      review checkbox after the last wave. Use numbered headings and `- [ ] X.Y` checkboxes.
+      Preserve the review-contract and wave markers from the template, including
+      `<!-- openspec-review-contract:v3 -->`, and choose exactly one `UI contract: none|material`.
+      For material UI add one checkbox beginning `UI review:` after its UI implementation/verification
+      and before final review; complete it only with concrete Artifact, Theme, Viewports, States, Data,
+      Evidence, Comparison, Discrepancies, and Reviewer fields after rendered side-by-side inspection.
+      When deterministic same-environment browser rendering is available, include a committed Playwright
+      toHaveScreenshot baseline; it complements artifact comparison. If rendering cannot be stabilized,
+      do not force a flaky baseline and record the limitation.
+      A completed final checkpoint must record concrete Coverage, Requirements, Exclusions, and Reviewer
+      fields; this attests coverage, while actual freshness after later diffs remains enforced by the
+      session/reviewer gate. Include validation and rollback tasks only where the accepted risk requires
+      them. Do not add adjacent work.
+    requires: [specs, design]
+apply:
+  requires: [tasks]
+  tracks: tasks.md
+  instruction: |
+    Before any implementation, resolve the active openspec-workflow skill root and run as a separate fail-closed step:
+    `python <openspec-workflow-skill-root>/scripts/validate_change.py --repo <repo> --change <change-name>`.
+    Do not substitute native status/validation; any artifact edit makes an earlier pass stale.
+    Stop on a nonzero exit. After a pass, record branch/HEAD/upstream and the dirty baseline,
+    then implement one semantic wave at a time and capture layer-appropriate evidence. At each wave checkpoint, run targeted checks and an independent
+    read-only review before dependent work. A validated High finding blocks the next wave;
+    resolve a validated Medium finding or obtain explicit user disposition. Re-review affected
+    findings after fixes. Run the final full-diff review before release; the last wave review may
+    satisfy it only if the reviewer declared full pending-diff coverage, checked requirements, and
+    exclusions, and any later material diff makes it stale. Reopen affected tasks and add a remediation
+    wave after validated findings. Pause on drift or new
+    unknowns. External effects still require their separate authority and GO gate.

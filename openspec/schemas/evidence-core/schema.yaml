@@ -1,0 +1,83 @@
+name: evidence-core
+version: 1
+description: Evidence-bound workflow for medium changes - proposal → specs → tasks
+artifacts:
+  - id: proposal
+    generates: proposal.md
+    description: Concise intent, evidence, scope, and unknowns
+    template: proposal.md
+    instruction: |
+      State why the confirmed change is needed and what observable behavior changes.
+      The Why text must contain at least 50 meaningful characters for strict validation.
+      Separate inspected facts from observations, hypotheses, and open questions.
+      List only capabilities supported by the request or inspected contracts.
+      If a material unknown changes behavior, data, security, cost, or an external effect,
+      add one unchecked Q-* item and ask the user instead of guessing.
+      Record any material decision as a DEC-* block with Status and Source. Repository
+      and external evidence can support only a proposed decision; accept it only after explicit
+      user approval recorded as user:USER-*.
+      Ask only for user-owned behavior or policy choices. Related proposed decisions may be
+      shown in one concise decision checkpoint and accepted by one explicit approval that names
+      the displayed DEC ids; partial approval leaves the rest proposed.
+      Do not invent a capability to satisfy validation. For a pure refactor, tooling, or
+      documentation change, set skip_specs: true in .openspec.yaml.
+    requires: []
+  - id: specs
+    generates: "specs/**/*.md"
+    description: Source-backed behavior deltas
+    template: spec.md
+    instruction: |
+      Create one delta spec per confirmed capability. Use OpenSpec ADDED, MODIFIED,
+      REMOVED, or RENAMED requirement sections. Each Requirement needs a unique ID: REQ-*, Status, and Source
+      metadata, normative SHALL/MUST behavior, and at least one #### Scenario with WHEN/THEN.
+      An accepted requirement may cite only exact user authority (user:USER-*) or an
+      existing accepted decision (decision:DEC-*). Repository paths and external URLs are
+      observational evidence, not authority for new normative behavior. Status is accepted
+      only when the cited user evidence semantically entails the entire behavior; otherwise keep the
+      uncertainty in proposal.md and stop before tasks. Preserve full existing requirement
+      blocks for MODIFIED changes. New capabilities need a Purpose of at least 50 meaningful
+      characters. A RENAMED section needs accepted Status and Source metadata before its
+      FROM/TO pairs.
+    requires: [proposal]
+  - id: tasks
+    generates: tasks.md
+    description: Minimal implementation checklist derived from accepted requirements
+    template: tasks.md
+    instruction: |
+      Before writing tasks, resolve the active openspec-workflow skill root and run as a separate fail-closed step:
+      `python <openspec-workflow-skill-root>/scripts/validate_change.py --repo <repo> --change <change-name>`.
+      Do not substitute native OpenSpec status/validation. A nonzero exit blocks tasks. Then run a
+      read-only semantic entailment review. Resolve every blocking Q-* item and proposed material decision.
+      Merely finding a cited id, file, line, or URL is not proof that it supports the requirement.
+      Derive every task from accepted requirements. Preserve contract v3 and put one
+      `openspec-trace` marker with exact REQ ids and concrete planned verification on each
+      implementation checkbox. For explicit `skip_specs: true`, use `requirements=none` while still recording concrete planned verification. The validator prints the read-only requirement-to-decision-to-task-to-verification
+      matrix; do not create another artifact. Use numbered headings and `- [ ] X.Y`
+      checkboxes. End the bounded change with one independent read-only review checkpoint after
+      implementation and targeted verification. Preserve the review-contract markers from the
+      template. Preserve `<!-- openspec-review-contract:v3 -->` and choose exactly one `UI contract: none|material`.
+      For material UI add one checkbox beginning `UI review:` before final review; complete it only
+      with concrete Artifact, Theme, Viewports, States, Data, Evidence, Comparison, Discrepancies,
+      and Reviewer fields after rendered side-by-side inspection. A completed final checkpoint must record concrete Coverage, Requirements,
+      When deterministic same-environment browser rendering is available, include a committed Playwright
+      toHaveScreenshot baseline; it complements artifact comparison. If rendering cannot be stabilized,
+      do not force a flaky baseline and record the limitation.
+      Exclusions, and Reviewer fields; actual freshness after later diffs remains enforced by the
+      session/reviewer gate. Keep tasks small, ordered, and verifiable. Do not
+      add adjacent work.
+    requires: [specs]
+apply:
+  requires: [tasks]
+  tracks: tasks.md
+  instruction: |
+    Before any implementation, resolve the active openspec-workflow skill root and run as a separate fail-closed step:
+    `python <openspec-workflow-skill-root>/scripts/validate_change.py --repo <repo> --change <change-name>`.
+    Do not substitute native status/validation; any artifact edit makes an earlier pass stale.
+    Stop on a nonzero exit. After a pass, implement only accepted requirements and
+    record branch/HEAD/upstream and the dirty baseline before editing. Mark tasks complete only as
+    layer-appropriate evidence is produced. After targeted verification, run one independent
+    read-only review before marking the change complete or handing it off; resolve blocking findings and re-review affected
+    contracts after fixes. If no independent reviewer is available, report the gate as not run and
+    do not complete or hand off the change without explicit user disposition. A reviewer must declare
+    full or partial coverage, checked requirements, and exclusions; partial coverage cannot close the
+    final checkpoint. Reopen affected tasks after a validated finding. Pause on drift or new unknowns.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Webapp Testing"
+  short_description: "Проверка веб-приложений через браузер"
+  default_prompt: "Use $webapp-testing. Проверь веб-приложение в браузере: UI, console, screenshots и user flows"

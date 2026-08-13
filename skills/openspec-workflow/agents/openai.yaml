@@ -1,0 +1,6 @@
+interface:
+  display_name: "OpenSpec Workflow"
+  short_description: "Stepwise, evidence-bound OpenSpec workflow"
+  default_prompt: "Use $openspec-workflow to route this software change through the official stepwise OpenSpec state machine without inventing decisions."
+policy:
+  allow_implicit_invocation: true

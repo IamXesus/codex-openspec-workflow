@@ -1,0 +1,4 @@
+interface:
+  display_name: "Coding Guardrails"
+  short_description: "Keep code simple, existing-first, surgical, and verified"
+  default_prompt: "Use $coding-guardrails. Apply coding guardrails: prefer existing solutions, keep scope small, verify behavior, and use subagents when they materially help"

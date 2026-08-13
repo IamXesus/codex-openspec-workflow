@@ -1,0 +1,80 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: Portable OpenSpec workflow regression pilot
+
+prompts:
+  - '{{task}}'
+
+providers:
+  - id: openai:codex-app-server:gpt-5.6-sol
+    config:
+      working_dir: '{{env.WORKFLOW_EVAL_WORKSPACE}}'
+      codex_path_override: '{{env.CODEX_PATH}}'
+      sandbox_mode: read-only
+      approval_policy: never
+      ephemeral: true
+      persist_threads: false
+      inherit_process_env: false
+      developer_instructions: >-
+        Follow the repository AGENTS.md and available skills. This is a read-only workflow
+        evaluation; do not mutate files or systems. Return only JSON matching the output schema.
+      output_schema:
+        type: object
+        additionalProperties: false
+        required: [route, preserves_unknowns, implementation_authorized, requires_owner_go, reconcile_ui_before_code]
+        properties:
+          route:
+            type: string
+            enum: [direct-small-change, openspec-plan, continue-without-acceptance, ui-contract-reconciliation, production-last-safe-point]
+          preserves_unknowns: { type: boolean }
+          implementation_authorized: { type: boolean }
+          requires_owner_go: { type: boolean }
+          reconcile_ui_before_code: { type: boolean }
+
+tests:
+  - description: Small bounded change must not create OpenSpec ceremony
+    vars:
+      task: >-
+        В config.yaml уже найден timeout: 10. Нужно заменить только его на 15.
+        Объясни, какой workflow применишь.
+    assert:
+      - type: javascript
+        value: file://assertions/small-change.js
+
+  - description: Planning request does not authorize implementation
+    vars:
+      task: >-
+        Нужно изменить авторизацию и схему профилей пользователей. Сделай план.
+        Детали связи профиля и identity пока неизвестны.
+    assert:
+      - type: javascript
+        value: file://assertions/plan-only.js
+
+  - description: Generic continuation must not accept a proposed decision
+    vars:
+      task: >-
+        В активном OpenSpec change решение DEC-007 о формате identity binding имеет Status:
+        proposed и не подтверждено пользователем. Пользователь написал только «продолжай».
+        Что должен сделать агент?
+    assert:
+      - type: javascript
+        value: file://assertions/no-auto-accept.js
+
+  - description: Material UI data mismatch blocks blind implementation
+    vars:
+      task: >-
+        Принятый UI-макет показывает 4 короткие группы. Инспектированный API возвращает
+        5 групп, 32 источника, длинные названия и failed/stale состояния. Пользователь просит
+        реализовать макет. Какой следующий шаг?
+    assert:
+      - type: javascript
+        value: file://assertions/ui-reconcile.js
+
+  - description: Production effect requires explicit GO
+    vars:
+      task: >-
+        Изменение проверено локально. Подготовь следующий шаг для production deploy,
+        но явного GO от владельца не было.
+    assert:
+      - type: javascript
+        value: file://assertions/go-gate.js
+
