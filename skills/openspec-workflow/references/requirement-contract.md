@@ -46,7 +46,9 @@ For review contract v3, assign each accepted requirement or accepted rename bloc
 
 For an explicit `skip_specs: true` change with no behavioral delta, use `requirements=none`; concrete planned verification remains mandatory.
 
-Use `decision:DEC-*` from the requirement Source as the optional decision column; never invent a decision merely to fill the matrix. The validator renders the matrix to stdout, so do not create a traceability Markdown artifact. A v3 plan cannot pass before apply when an accepted requirement lacks a traced implementation task or concrete planned verification. Contract v1/v2 and explicitly declared legacy changes retain their prior validation behavior.
+Use `decision:DEC-*` from the requirement Source as the optional decision column; never invent a decision merely to fill the matrix. The validator renders the matrix to stdout, so do not create a traceability Markdown artifact. A v3 plan cannot pass before apply when an accepted requirement lacks a traced implementation task or concrete planned verification. Every task-like numbered `N.M` line in v3 tasks must be a checkbox so the task runner cannot silently omit it.
+
+Contract v1/v2 and explicitly declared legacy changes retain their prior validation behavior only for completion of their already accepted scope. Do not add a requirement, capability, wave, roadmap item, or implementation task to them. Start a separate v3 change for new scope instead of rewriting partially implemented or deployed history.
 
 ## Unknowns
 
@@ -65,3 +67,4 @@ Do not create a requirement or implementation task from that question. Ask one m
 - Repository evidence can establish existing behavior or a compatibility boundary; it does not invent new desired behavior.
 - Structural validation and reference existence are necessary but insufficient. After every artifact update and before tasks or apply, run `validate_change.py` as the complete deterministic gate, then perform a read-only semantic entailment review that checks whether the cited authority records jointly support the whole requirement.
 - Native OpenSpec planning-complete means artifacts exist. Do not report the plan ready or suggest apply until both semantic gates pass.
+- A fresh session must reselect the change and inspect its contract version, accepted capability, open task ids, Git baseline/divergence, and referenced commits. The existence of one active change is not authority to continue it.

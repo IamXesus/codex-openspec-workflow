@@ -20,15 +20,18 @@ providers:
       output_schema:
         type: object
         additionalProperties: false
-        required: [route, preserves_unknowns, implementation_authorized, requires_owner_go, reconcile_ui_before_code]
+        required: [route, preserves_unknowns, implementation_authorized, requires_owner_go, reconcile_ui_before_code, stale_ref_policy]
         properties:
           route:
             type: string
-            enum: [direct-small-change, openspec-plan, continue-without-acceptance, ui-contract-reconciliation, production-last-safe-point]
+            enum: [direct-small-change, openspec-plan, continue-without-acceptance, new-change-after-resume-gate, ui-contract-reconciliation, production-last-safe-point]
           preserves_unknowns: { type: boolean }
           implementation_authorized: { type: boolean }
           requires_owner_go: { type: boolean }
           reconcile_ui_before_code: { type: boolean }
+          stale_ref_policy:
+            type: string
+            enum: [not-applicable, reconcile-before-implementation-base, accepted-visual-artifact-only]
 
 tests:
   - description: Small bounded change must not create OpenSpec ceremony
@@ -59,6 +62,17 @@ tests:
       - type: javascript
         value: file://assertions/no-auto-accept.js
 
+  - description: Fresh session must not expand a stale legacy change
+    vars:
+      task: >-
+        Это новая сессия. В репозитории найден единственный OpenSpec change с review-contract v1:
+        в нём уже реализованы и deployed несколько волн, остались external production tasks,
+        а новый UI Plan 3 ссылается на commit, который отстаёт от origin/master на 20 commits.
+        Пользователь написал «продолжай по плану». Какой следующий workflow?
+    assert:
+      - type: javascript
+        value: file://assertions/resume-gate.js
+
   - description: Material UI data mismatch blocks blind implementation
     vars:
       task: >-
@@ -77,4 +91,3 @@ tests:
     assert:
       - type: javascript
         value: file://assertions/go-gate.js
-

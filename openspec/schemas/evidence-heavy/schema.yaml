@@ -72,6 +72,9 @@ artifacts:
       wave with a review-checkpoint checkbox after its targeted verification; place a checkpoint
       before downstream work depends on a changed contract. Include one final full-diff release
       review checkbox after the last wave. Use numbered headings and `- [ ] X.Y` checkboxes.
+      Every task-like numbered N.M line must be a checkbox; do not hide roadmap, planning,
+      or implementation work as plain text outside the task runner. Keep this change to one coherent
+      capability/delivery stream; independently accepted or released scope belongs in another change.
       Preserve the review-contract and wave markers from the template, including
       `<!-- openspec-review-contract:v3 -->`, and choose exactly one `UI contract: none|material`.
       For material UI add one checkbox beginning `UI review:` after its UI implementation/verification
@@ -92,7 +95,10 @@ apply:
     Before any implementation, resolve the active openspec-workflow skill root and run as a separate fail-closed step:
     `python <openspec-workflow-skill-root>/scripts/validate_change.py --repo <repo> --change <change-name>`.
     Do not substitute native status/validation; any artifact edit makes an earlier pass stale.
-    Stop on a nonzero exit. After a pass, record branch/HEAD/upstream and the dirty baseline,
+    Stop on a nonzero exit. In a fresh session first reselect this change, reject v1/v2 expansion,
+    fetch upstream read-only, and record branch/HEAD/upstream, upstream HEAD, dirty baseline, and
+    divergence. Reconcile referenced old commits as evidence/artifacts, never an automatic
+    implementation base. After a pass,
     then implement one semantic wave at a time and capture layer-appropriate evidence. At each wave checkpoint, run targeted checks and an independent
     read-only review before dependent work. A validated High finding blocks the next wave;
     resolve a validated Medium finding or obtain explicit user disposition. Re-review affected

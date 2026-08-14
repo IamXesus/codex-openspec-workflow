@@ -17,7 +17,7 @@ Use the official OpenSpec CLI, schemas, and generated workflows as the only arti
 
 ## Natural-Language State Machine
 
-Do not select a phase from the user's exact wording. Resolve the active change and run `openspec.cmd status --change <name> --json`; its first ready artifact is the next planning step.
+Do not select a phase from the user's exact wording. First select the change through the cross-session gate below, then run `openspec.cmd status --change <name> --json`; its first ready artifact is only the next structural planning step.
 Native status controls artifact order only. `isPlanningComplete` means files exist; it is not semantic approval and must never by itself trigger a ready-to-apply message.
 
 - A new planning request such as "сделай план" starts the official stepwise path: select the schema by the routing rules above, then run `openspec.cmd new change "<name>" --schema <selected-schema>`. Never use `openspec-propose` or fast-forward.
@@ -28,9 +28,25 @@ Native status controls artifact order only. `isPlanningComplete` means files exi
 - Corrections use `openspec-update-change` and stay within the same artifact unless the intent itself changed.
 - Implementation requires a separate clear apply/build request after planning validation. A planning request never carries authority into apply.
 
+## Cross-Session Change Selection And Freshness Gate
+
+A fresh model session has no durable ownership of a previously active change. Repository files are durable evidence, not proof that the user's current intent belongs to the nearest, oldest, or only change.
+
+Before continuing any existing change in a new session, after compaction, or after returning from another workstream:
+
+1. List candidate changes and inspect the candidate proposal, specs, tasks, `.openspec.yaml`, review-contract marker, open task ids, and last completed/release wave.
+2. Restate the candidate's one accepted capability and compare it with the current request. Continue only when the request is inside that accepted capability and existing open tasks. A new independently reviewable/releasable capability, a new spec namespace, or work appended after deployment/production reconciliation starts a new change.
+3. Treat review contracts v1/v2 as completion-only compatibility state. They may finish already accepted open tasks, but must not receive new requirements, capabilities, waves, roadmap items, or implementation tasks. Put new scope in a separate v3 change; do not upgrade a partially implemented/deployed legacy history in place.
+4. Fetch the configured upstream read-only and record branch, HEAD, upstream, dirty state, upstream HEAD, and divergence. Stop on fetch/ref failure or material drift; do not silently rebase, merge, copy, or reinterpret stale code.
+5. Classify every referenced commit/ref as either historical evidence, accepted visual artifact, or implementation base. An old artifact may remain authoritative for its accepted visual content, but its code is never an implementation base until its diff is reconciled against current upstream and current contracts.
+6. Show the selected change, capability, contract version, open task ids, baseline/divergence, and stale references before reporting the next step. If selection remains materially ambiguous, ask one concise blocking question.
+
+A generic 'continue' in a fresh session does not select a legacy or stale change and does not authorize a new capability inside it.
+
 ## Start Or Continue A Change
 
 - Work inside the target repository. Never use a shared workspace folder for a single-project change.
+- Keep one change scoped to one coherent capability and delivery stream. Size alone does not require splitting, but independent acceptance, release, rollback, ownership, or production reconciliation does. Keep roadmap candidates and unrelated external handoffs out of implementation tasks.
 - If the repository has no `openspec/` setup and the user explicitly requested a software plan/spec or the accepted implementation requires one, initialize it with `openspec.cmd init <repo> --tools codex --no-animation --no-copilot-cloud`. Do not force the `core` profile; use the configured stepwise profile.
 - After initialization, set the repository's `openspec/config.yaml` default `schema` to `evidence-core`; select `evidence-heavy` explicitly for heavy changes.
 - Create changes through the official CLI with `openspec.cmd new change "<name>" --schema evidence-core` or `--schema evidence-heavy`; advance through `openspec-continue-change` one artifact at a time. Do not delegate schema selection to the generated `openspec-new-change` default-only rule.
@@ -57,7 +73,10 @@ Read [references/requirement-contract.md](references/requirement-contract.md) be
 - After the deterministic gate passes, perform the read-only semantic entailment review; reference validity cannot prove that the cited evidence supports the entire requirement.
 - Treat either failure as a contract failure, not as permission to fill gaps.
 - Under review contract v3, give every accepted requirement a stable `REQ-*` id and put an inline `openspec-trace` marker on each implementation task with exact requirement ids and concrete planned verification. The validator prints the read-only requirement → accepted decision when cited → task → planned verification matrix. Do not create a separate traceability file. Before apply, fail closed if any accepted requirement has no traced implementation task or planned verification. For explicit `skip_specs: true`, tasks use `requirements=none` and still require concrete planned verification.
+- Every task-like numbered line in v3 `tasks.md` must be a checkbox. Do not hide roadmap, planning, or implementation work as plain `N.M` text that the OpenSpec task runner cannot see.
 - If native status says complete but either gate fails, report the change as blocked and list only the unsupported requirements, decisions, or questions. Do not suggest apply.
+
+Before saying a plan is ready, run `openspec.cmd instructions apply --change <name> --json` read-only and reconcile its task list with every accepted REQ id and the expected implementation/review checkpoints. Report `artifacts structurally present` when only native status passes. Report `implementation-ready plan` only when v3 validation, semantic review, task-runner reconciliation, and explicit user acceptance all pass.
 
 ## Decision Discipline
 
@@ -82,6 +101,8 @@ Complete the UI checkpoint only after rendered desktop/mobile evidence is opened
 When a material UI project supports deterministic same-environment browser rendering, commit a Playwright `toHaveScreenshot` baseline and run it as regression evidence. It complements, and never replaces, explicit comparison with the accepted artifact. If OS, browser, fonts, or rendering cannot be stabilized, do not force a flaky baseline; record that limitation in the task/checkpoint evidence.
 
 Before implementation, record the actual Git branch, HEAD, upstream, dirty baseline, and pre-existing unrelated changes. Before commit or push, inspect them again and confirm the pending diff belongs to the accepted change. A failed branch or worktree command leaves the previous state in force; never report the intended state as achieved.
+
+When another agent/session owns an external dependency, keep the local task open as `external pending`, record the owner and return condition, and continue only independent accepted work. Do not spawn a substitute worker, prepare retries, mutate the external system, or mark the dependency complete unless the user explicitly changes ownership.
 
 Use completion terms exactly: `planning complete`, `implementation in progress`, `implementation verified`, `full-diff review passed`, `release ready`, and `deployed`. OpenSpec `all_done` is only checkbox state. Do not say `release ready` while a required rehearsal, maintenance mechanism, approval, or other release prerequisite remains open.
 

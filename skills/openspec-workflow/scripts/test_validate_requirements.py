@@ -595,6 +595,35 @@ class RequirementValidationTests(unittest.TestCase):
         errors = validate_change(self.make_change(spec, proposal=proposal, tasks=tasks))
         self.assertTrue(any('implementation task requires an openspec-trace' in error for error in errors))
 
+    def test_v3_rejects_task_like_plain_line_hidden_from_runner(self):
+        proposal = '## Evidence\n- USER-001: requested export.\n\n## UI Contract\n**Mode:** none\n'
+        spec = ('## ADDED Requirements\n\n### Requirement: Export\n**ID:** REQ-001\n'
+                '**Status:** accepted\n**Source:** user:USER-001\nThe system SHALL export.\n')
+        tasks = ('<!-- openspec-review-contract:v3 -->\nUI contract: none\n\n'
+                 '- [ ] 1.1 <!-- openspec-trace: requirements=REQ-001; verification=run export integration test --> Implement export.\n'
+                 '- 2.1 Add a future implementation wave that OpenSpec cannot track.\n'
+                 '- [ ] 3.1 <!-- openspec-review:final --> Review full diff.\n')
+        errors = validate_change(self.make_change(spec, proposal=proposal, tasks=tasks))
+        self.assertTrue(any('must be a checkbox visible to the task runner' in error for error in errors))
+
+    def test_legacy_rejects_appended_plain_task_hidden_from_runner(self):
+        spec = ('## ADDED Requirements\n\n### Requirement: Export\n'
+                '**Status:** accepted\n**Source:** user:USER-001\nThe system SHALL export.\n')
+        tasks = ('<!-- openspec-review-contract:v1 -->\n\n'
+                 '- [x] 1.1 Implement the accepted export.\n'
+                 '- 2.1 Add a new UI implementation wave outside the runner.\n')
+        errors = validate_change(self.make_change(spec, tasks=tasks))
+        self.assertTrue(any('must be a checkbox visible to the task runner' in error for error in errors))
+
+    def test_runner_visibility_rejects_markdown_number_formats(self):
+        spec = ('## ADDED Requirements\n\n### Requirement: Export\n'
+                '**Status:** accepted\n**Source:** user:USER-001\nThe system SHALL export.\n')
+        for hidden_task in ('- **2.1** Add a future wave.\n', '- 2.1: Add a future wave.\n', '- **2.1:** Add a future wave.\n'):
+            with self.subTest(hidden_task=hidden_task):
+                tasks = '<!-- openspec-review-contract:v1 -->\n\n- [x] 1.1 Implement export.\n' + hidden_task
+                errors = validate_change(self.make_change(spec, tasks=tasks))
+                self.assertTrue(any('must be a checkbox visible to the task runner' in error for error in errors))
+
     def test_v3_skip_specs_allows_none_with_concrete_verification(self):
         tasks = ('<!-- openspec-review-contract:v3 -->\nUI contract: none\n\n'
                  '- [ ] 1.1 Update tooling. <!-- openspec-trace: requirements=none; verification=run tool self-test -->\n'

@@ -178,6 +178,18 @@ def split_sources(value: str) -> list[str]:
     return [source.strip() for source in value.split(",") if source.strip()]
 
 
+def task_runner_visibility_contract(change_dir: Path) -> list[str]:
+    tasks = change_dir / 'tasks.md'
+    if not tasks.is_file():
+        return []
+    pattern = re.compile(r'^\s*(?:[-*+]\s+)?(?:\*\*|__)?\d+(?:\.\d+)+(?:[.):])?(?:\*\*|__)?(?:\s+|$)')
+    return [
+        f'tasks.md:{number}: task-like numbered line must be a checkbox visible to the task runner'
+        for number, line in enumerate(tasks.read_text(encoding='utf-8-sig').splitlines(), start=1)
+        if pattern.match(line) and TASK_CHECKBOX.match(line) is None
+    ]
+
+
 def traceability_contract(change_dir: Path) -> tuple[list[str], list[tuple[str, str, str, str]]]:
     tasks = change_dir / 'tasks.md'
     if not tasks.is_file():
@@ -676,6 +688,7 @@ def validate_change(change_dir: Path) -> list[str]:
         errors.append("spec artifacts contain no Requirement or RENAMED blocks")
     if not spec_files and not skip_specs:
         errors.append("no spec artifacts and skip_specs is not true")
+    errors.extend(task_runner_visibility_contract(change_dir))
     traceability_errors, _ = traceability_contract(change_dir)
     errors.extend(traceability_errors)
     errors.extend(validate_review_contract(change_dir))

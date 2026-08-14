@@ -53,7 +53,8 @@ artifacts:
       `openspec-trace` marker with exact REQ ids and concrete planned verification on each
       implementation checkbox. For explicit `skip_specs: true`, use `requirements=none` while still recording concrete planned verification. The validator prints the read-only requirement-to-decision-to-task-to-verification
       matrix; do not create another artifact. Use numbered headings and `- [ ] X.Y`
-      checkboxes. End the bounded change with one independent read-only review checkpoint after
+      checkboxes. Every task-like numbered N.M line must be a checkbox; do not hide roadmap,
+      planning, or implementation work as plain text outside the task runner. End the bounded change with one independent read-only review checkpoint after
       implementation and targeted verification. Preserve the review-contract markers from the
       template. Preserve `<!-- openspec-review-contract:v3 -->` and choose exactly one `UI contract: none|material`.
       For material UI add one checkbox beginning `UI review:` before final review; complete it only
@@ -73,7 +74,11 @@ apply:
     Before any implementation, resolve the active openspec-workflow skill root and run as a separate fail-closed step:
     `python <openspec-workflow-skill-root>/scripts/validate_change.py --repo <repo> --change <change-name>`.
     Do not substitute native status/validation; any artifact edit makes an earlier pass stale.
-    Stop on a nonzero exit. After a pass, implement only accepted requirements and
+    Stop on a nonzero exit. In a fresh session first reselect this change, reject any expansion of
+    a v1/v2 compatibility change, confirm the request still matches its accepted capability and
+    existing open tasks, fetch upstream read-only, and record current HEAD,
+    upstream HEAD, dirty state, and divergence. Reconcile referenced old commits as evidence/artifacts,
+    never an automatic implementation base. Then implement only accepted requirements and
     record branch/HEAD/upstream and the dirty baseline before editing. Mark tasks complete only as
     layer-appropriate evidence is produced. After targeted verification, run one independent
     read-only review before marking the change complete or handing it off; resolve blocking findings and re-review affected
