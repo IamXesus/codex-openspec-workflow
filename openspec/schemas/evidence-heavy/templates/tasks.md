@@ -1,6 +1,8 @@
 <!-- openspec-review-contract:v3 -->
 UI contract: none
 
+<!-- For material Architecture Impact add exactly one pre-implementation checkbox before affected work. Use marker openspec-review:architecture and record Coverage, Growth, Ownership, Findings, Exclusions, Reviewer, and Verdict: READY when complete. -->
+
 ## 1. <!-- openspec-wave:wave-1 --> Semantic implementation wave
 
 - [ ] 1.1 <!-- openspec-trace: requirements=REQ-001; verification=<exact test/check and expected result> --> <!-- Minimal task derived from accepted requirements and design -->

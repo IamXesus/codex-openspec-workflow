@@ -12,6 +12,20 @@ Accepted requires explicit user:USER-*; repo/external keeps the decision propose
 Describe the technical choice and rationale. Accepted requirements may cite decision:DEC-001.
 -->
 
+## Component Ownership
+
+**Architecture impact:** none
+<!-- For material impact replace every placeholder below with inspected evidence. -->
+**Inspected baseline:** not applicable
+**Expected growth:** not applicable
+**Existing responsibilities:** not applicable
+**New responsibilities:** not applicable
+**Transaction owner:** not applicable
+**Boundary options:** not applicable
+**Decision:** keep-cohesive
+**Known cost:** none
+**Ratchet scope:** no broad refactor; change only responsibilities required by accepted requirements
+
 ## Risks / Mitigations
 
 <!-- Add a Migration And Rollback section only when applicable. -->

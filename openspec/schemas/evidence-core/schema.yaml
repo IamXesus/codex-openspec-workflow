@@ -21,6 +21,12 @@ artifacts:
       the displayed DEC ids; partial approval leaves the rest proposed.
       Do not invent a capability to satisfy validation. For a pure refactor, tooling, or
       documentation change, set skip_specs: true in .openspec.yaml.
+      Preserve `<!-- openspec-architecture-contract:v1 -->` and inspect likely production
+      components before choosing exactly one `Architecture impact: none|material`. Material
+      means an existing production file over 1000 lines, expected growth of roughly 250 or
+      more production lines in one file, or multiple independently testable responsibilities.
+      `material` is incompatible with evidence-core: stop before specs/tasks and recreate the
+      change with evidence-heavy so design and component ownership can be reviewed.
     requires: []
   - id: specs
     generates: "specs/**/*.md"
@@ -53,7 +59,8 @@ artifacts:
       `openspec-trace` marker with exact REQ ids and concrete planned verification on each
       implementation checkbox. For explicit `skip_specs: true`, use `requirements=none` while still recording concrete planned verification. The validator prints the read-only requirement-to-decision-to-task-to-verification
       matrix; do not create another artifact. Use numbered headings and `- [ ] X.Y`
-      checkboxes. End the bounded change with one independent read-only review checkpoint after
+      checkboxes. Every task-like numbered N.M line must be a checkbox; do not hide roadmap,
+      planning, or implementation work as plain text outside the task runner. End the bounded change with one independent read-only review checkpoint after
       implementation and targeted verification. Preserve the review-contract markers from the
       template. Preserve `<!-- openspec-review-contract:v3 -->` and choose exactly one `UI contract: none|material`.
       For material UI add one checkbox beginning `UI review:` before final review; complete it only
@@ -65,6 +72,10 @@ artifacts:
       Exclusions, and Reviewer fields; actual freshness after later diffs remains enforced by the
       session/reviewer gate. Keep tasks small, ordered, and verifiable. Do not
       add adjacent work.
+      Run `$architecture-review` and
+      `python <architecture-review-skill-root>/scripts/validate_openspec_architecture.py --repo <repo> --change <change-name> --phase apply`
+      before completing tasks. A material impact or nonzero exit means the evidence-core change
+      is not implementation-ready and must move to evidence-heavy.
     requires: [specs]
 apply:
   requires: [tasks]
@@ -73,7 +84,11 @@ apply:
     Before any implementation, resolve the active openspec-workflow skill root and run as a separate fail-closed step:
     `python <openspec-workflow-skill-root>/scripts/validate_change.py --repo <repo> --change <change-name>`.
     Do not substitute native status/validation; any artifact edit makes an earlier pass stale.
-    Stop on a nonzero exit. After a pass, implement only accepted requirements and
+    Stop on a nonzero exit. In a fresh session first reselect this change, reject any expansion of
+    a v1/v2 compatibility change, confirm the request still matches its accepted capability and
+    existing open tasks, fetch upstream read-only, and record current HEAD,
+    upstream HEAD, dirty state, and divergence. Reconcile referenced old commits as evidence/artifacts,
+    never an automatic implementation base. Then implement only accepted requirements and
     record branch/HEAD/upstream and the dirty baseline before editing. Mark tasks complete only as
     layer-appropriate evidence is produced. After targeted verification, run one independent
     read-only review before marking the change complete or handing it off; resolve blocking findings and re-review affected
@@ -81,3 +96,7 @@ apply:
     do not complete or hand off the change without explicit user disposition. A reviewer must declare
     full or partial coverage, checked requirements, and exclusions; partial coverage cannot close the
     final checkpoint. Reopen affected tasks after a validated finding. Pause on drift or new unknowns.
+    Before any production edit, run
+    `python <architecture-review-skill-root>/scripts/validate_openspec_architecture.py --repo <repo> --change <change-name> --phase apply`.
+    A nonzero exit blocks implementation even when native OpenSpec state says ready. Material
+    architecture impact is incompatible with evidence-core and must move to evidence-heavy.

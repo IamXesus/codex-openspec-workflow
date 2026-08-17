@@ -59,6 +59,16 @@ Read [references/requirement-contract.md](references/requirement-contract.md) be
 - Under review contract v3, give every accepted requirement a stable `REQ-*` id and put an inline `openspec-trace` marker on each implementation task with exact requirement ids and concrete planned verification. The validator prints the read-only requirement → accepted decision when cited → task → planned verification matrix. Do not create a separate traceability file. Before apply, fail closed if any accepted requirement has no traced implementation task or planned verification. For explicit `skip_specs: true`, tasks use `requirements=none` and still require concrete planned verification.
 - If native status says complete but either gate fails, report the change as blocked and list only the unsupported requirements, decisions, or questions. Do not suggest apply.
 
+## Architecture Growth Gate
+
+- Preserve `<!-- openspec-architecture-contract:v1 -->` and classify `Architecture impact` from the inspected production baseline, not from task wording alone.
+- Use `material` when the planned change touches an existing production file over 1000 lines, expects roughly 250 or more production lines in one file, or adds multiple independently testable responsibilities. These are review triggers, not automatic defects.
+- A material classification is incompatible with `evidence-core`; recreate the change with `evidence-heavy` before specs or tasks. Do not silently omit the trigger to keep a smaller schema.
+- For material impact, record component paths and current sizes, expected growth, existing and new responsibilities, transaction owner, boundary options, one chosen ownership decision, known cost, and a narrow ratchet scope in `design.md`.
+- Before tasks, run `$architecture-review` against the actual baseline and planning artifacts, then run `python <architecture-review-skill-root>/scripts/validate_openspec_architecture.py --repo <repo> --change <change-name> --phase planning`. A `NOT READY` verdict or nonzero exit blocks task creation.
+- Before production edits, require exactly one completed `openspec-review:architecture` task with Coverage, Growth, Ownership, Findings, Exclusions, Reviewer, and `Verdict: READY`; rerun the validator with `--phase apply`. Do not substitute ordinary code review or green tests.
+- Existing large services are grandfathered only as baseline. Do not start broad legacy refactoring without accepted scope, but do not add an unowned responsibility or exceed the accepted growth decision merely because the component was already large.
+
 ## Decision Discipline
 
 - Ask the user only for choices that change observable behavior, business policy, data ownership, security, cost, rollout, or an external effect. Derive implementation observations from inspected project evidence and keep unsupported future mechanics out of the current change.
@@ -72,6 +82,8 @@ Read [references/requirement-contract.md](references/requirement-contract.md) be
 3. Use `evidence-heavy` design decisions and rollback sections only when their risk actually applies.
 4. Verify implementation against scenarios and record actual evidence. OpenSpec validation proves structure, not truth or runtime correctness.
 5. External, production, destructive, financial, persistent-data, or irreversible effects still require the separate applicable `GO`; an OpenSpec change never grants authority.
+
+Before step 1, run the architecture growth gate for every v1 architecture contract. A nonzero architecture validator exit blocks implementation even when native OpenSpec status and the ordinary evidence validator pass.
 
 Match evidence to the claimed layer. UI layout needs rendered/browser evidence; interactive UI needs component or browser interaction; framework lifecycle behavior needs the real framework path; authorization needs negative boundary tests; migrations need a real database path; idempotency needs replay after state change; concurrency needs stale/conflicting writes. A green lower-level substitute does not close a higher-level claim.
 

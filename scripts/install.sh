@@ -23,7 +23,7 @@ copy_tree() {
   done
 }
 
-for skill in openspec-workflow code-reviewer webapp-testing coding-guardrails; do
+for skill in openspec-workflow code-reviewer webapp-testing coding-guardrails architecture-review; do
   copy_tree "$repo_root/skills/$skill" "$agent_root/$skill"
 done
 

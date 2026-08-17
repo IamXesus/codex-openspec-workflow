@@ -22,6 +22,12 @@
 
 <!-- Confirmed code, API, data, dependency, deployment, and external surfaces. -->
 
+<!-- openspec-architecture-contract:v1 -->
+## Architecture Impact
+
+**Architecture impact:** none
+<!-- Change to material when the inspected baseline includes an existing production file over 1000 lines, expected growth of roughly 250+ production lines in one file, or multiple independently testable responsibilities. -->
+
 ## UI Contract
 
 **Mode:** none

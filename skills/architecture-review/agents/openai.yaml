@@ -1,0 +1,4 @@
+interface:
+  display_name: "Architecture Review"
+  short_description: "Review cohesion, growth, and component boundaries"
+  default_prompt: "Use $architecture-review to audit the current production diff for architectural growth risks."

@@ -38,6 +38,8 @@ Install for Omnigent's shared Agent Skills directory:
 
 The installer overlays package-owned files without deleting unknown destination files and excludes Python caches. Use `-Check` to detect stale files left by an older package. It does not create symlinks, edit an existing `AGENTS.md`, install npm packages, or modify project repositories. Apply `policy/AGENTS.fragment.md` intentionally after reviewing it. Codex installs honor `CODEX_HOME`; pass `-AgentRoot` to target another host-specific skill directory.
 
+The package includes `architecture-review`, a reusable read-only reviewer plus a fail-closed OpenSpec architecture-contract validator. New proposals classify architecture impact; material changes use `evidence-heavy`, record component ownership in design, and complete an independent architecture checkpoint before production edits. Existing large services remain out of scope unless the accepted change touches their responsibilities.
+
 ## Validate
 
 ```powershell

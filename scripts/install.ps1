@@ -37,6 +37,7 @@ $copies = @(
     @{ Source = Join-Path $repoRoot 'skills\code-reviewer'; Destination = Join-Path $AgentRoot 'code-reviewer' },
     @{ Source = Join-Path $repoRoot 'skills\webapp-testing'; Destination = Join-Path $AgentRoot 'webapp-testing' },
     @{ Source = Join-Path $repoRoot 'skills\coding-guardrails'; Destination = Join-Path $AgentRoot 'coding-guardrails' },
+    @{ Source = Join-Path $repoRoot 'skills\architecture-review'; Destination = Join-Path $AgentRoot 'architecture-review' },
     @{ Source = Join-Path $repoRoot 'openspec\schemas\evidence-core'; Destination = Join-Path $OpenSpecSchemaRoot 'evidence-core' },
     @{ Source = Join-Path $repoRoot 'openspec\schemas\evidence-heavy'; Destination = Join-Path $OpenSpecSchemaRoot 'evidence-heavy' }
 )

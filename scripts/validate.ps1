@@ -4,7 +4,7 @@ $env:PYTHONUTF8 = '1'
 
 $skillValidator = Join-Path $env:USERPROFILE '.codex\skills\.system\skill-creator\scripts\quick_validate.py'
 if (Test-Path -LiteralPath $skillValidator) {
-    foreach ($skill in 'openspec-workflow', 'code-reviewer', 'webapp-testing', 'coding-guardrails') {
+    foreach ($skill in 'openspec-workflow', 'code-reviewer', 'webapp-testing', 'coding-guardrails', 'architecture-review') {
         python $skillValidator (Join-Path $repoRoot "skills\$skill")
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     }
@@ -13,6 +13,14 @@ if (Test-Path -LiteralPath $skillValidator) {
 Push-Location (Join-Path $repoRoot 'skills\openspec-workflow\scripts')
 try {
     python -m unittest -v test_validate_requirements.py test_validate_change.py
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+} finally {
+    Pop-Location
+}
+
+Push-Location (Join-Path $repoRoot 'skills\architecture-review\scripts')
+try {
+    python -m unittest -v test_validate_openspec_architecture.py
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 } finally {
     Pop-Location

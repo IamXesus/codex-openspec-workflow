@@ -22,6 +22,12 @@ artifacts:
       Do not invent a capability to satisfy validation. For a pure refactor, tooling, or
       documentation/operations change with no behavior delta, set skip_specs: true in
       .openspec.yaml.
+      Preserve `<!-- openspec-architecture-contract:v1 -->` and inspect likely production
+      components before choosing exactly one `Architecture impact: none|material`. Use
+      `material` when an existing production file is over 1000 lines, expected growth is
+      roughly 250 or more production lines in one file, or the change adds multiple
+      independently testable responsibilities. This classification does not authorize
+      unrelated legacy refactoring.
     requires: []
   - id: specs
     generates: "specs/**/*.md"
@@ -52,6 +58,12 @@ artifacts:
       rollback only when applicable. Record nonblocking uncertainty as OBS/HYP, never Q-*; every Q-* is blocking. A question that changes requirements,
       architecture, tasks, security, data, cost, or external effects is blocking: ask the
       user instead of selecting a plausible default.
+      Preserve `## Component Ownership`. For material architecture impact, replace every
+      placeholder with inspected baseline paths/sizes, expected production growth, existing
+      and new responsibilities, transaction owner, considered boundary options, one exact
+      decision (`keep-cohesive`, `extract-collaborators`, or `temporary-exception`), known
+      cost, and a ratchet scope that forbids unrelated legacy refactoring. A missing or pending
+      ownership decision means design is not implementation-ready.
     requires: [proposal, specs]
   - id: tasks
     generates: tasks.md
@@ -72,6 +84,9 @@ artifacts:
       wave with a review-checkpoint checkbox after its targeted verification; place a checkpoint
       before downstream work depends on a changed contract. Include one final full-diff release
       review checkbox after the last wave. Use numbered headings and `- [ ] X.Y` checkboxes.
+      Every task-like numbered N.M line must be a checkbox; do not hide roadmap, planning,
+      or implementation work as plain text outside the task runner. Keep this change to one coherent
+      capability/delivery stream; independently accepted or released scope belongs in another change.
       Preserve the review-contract and wave markers from the template, including
       `<!-- openspec-review-contract:v3 -->`, and choose exactly one `UI contract: none|material`.
       For material UI add one checkbox beginning `UI review:` after its UI implementation/verification
@@ -84,6 +99,12 @@ artifacts:
       fields; this attests coverage, while actual freshness after later diffs remains enforced by the
       session/reviewer gate. Include validation and rollback tasks only where the accepted risk requires
       them. Do not add adjacent work.
+      For material architecture impact, add exactly one incomplete pre-implementation
+      `openspec-review:architecture` checkbox before affected production tasks. Complete it
+      only after an independent `$architecture-review` records Coverage, Growth, Ownership,
+      Findings, Exclusions, Reviewer, and `Verdict: READY`. Then run
+      `python <architecture-review-skill-root>/scripts/validate_openspec_architecture.py --repo <repo> --change <change-name> --phase apply`;
+      a nonzero exit blocks completion of the tasks artifact and all implementation.
     requires: [specs, design]
 apply:
   requires: [tasks]
@@ -92,7 +113,10 @@ apply:
     Before any implementation, resolve the active openspec-workflow skill root and run as a separate fail-closed step:
     `python <openspec-workflow-skill-root>/scripts/validate_change.py --repo <repo> --change <change-name>`.
     Do not substitute native status/validation; any artifact edit makes an earlier pass stale.
-    Stop on a nonzero exit. After a pass, record branch/HEAD/upstream and the dirty baseline,
+    Stop on a nonzero exit. In a fresh session first reselect this change, reject v1/v2 expansion,
+    fetch upstream read-only, and record branch/HEAD/upstream, upstream HEAD, dirty baseline, and
+    divergence. Reconcile referenced old commits as evidence/artifacts, never an automatic
+    implementation base. After a pass,
     then implement one semantic wave at a time and capture layer-appropriate evidence. At each wave checkpoint, run targeted checks and an independent
     read-only review before dependent work. A validated High finding blocks the next wave;
     resolve a validated Medium finding or obtain explicit user disposition. Re-review affected
@@ -101,3 +125,9 @@ apply:
     exclusions, and any later material diff makes it stale. Reopen affected tasks and add a remediation
     wave after validated findings. Pause on drift or new
     unknowns. External effects still require their separate authority and GO gate.
+    Before any production edit, run `$architecture-review` against the inspected baseline and
+    planning artifacts, then run
+    `python <architecture-review-skill-root>/scripts/validate_openspec_architecture.py --repo <repo> --change <change-name> --phase apply`.
+    A nonzero exit or `NOT READY` verdict blocks implementation even when native OpenSpec state
+    says ready. Existing large services are grandfathered only as baseline: do not start broad
+    cleanup, but do not add an unowned responsibility or exceed the accepted growth decision.

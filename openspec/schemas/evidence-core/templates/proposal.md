@@ -22,6 +22,12 @@
 
 <!-- Confirmed affected surfaces only. -->
 
+<!-- openspec-architecture-contract:v1 -->
+## Architecture Impact
+
+**Architecture impact:** none
+<!-- Material impact is incompatible with evidence-core. Use evidence-heavy before specs/tasks. -->
+
 ## UI Contract
 
 **Mode:** none
