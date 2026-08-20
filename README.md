@@ -9,6 +9,7 @@ Consumer repositories inherit the reusable package, but remain authoritative for
 - `skills/` — canonical Agent Skills shared by Codex, Orca, and Omnigent.
 - `openspec/schemas/` — `evidence-core` and `evidence-heavy` custom schemas.
 - `policy/AGENTS.fragment.md` — portable workflow policy to merge into a user or project `AGENTS.md`.
+- `project_templates/` — host-neutral, evidence-first project knowledge and OpenSpec configuration scaffold.
 - `evals/promptfoo/` — isolated regression corpus for the workflow itself.
 - `scripts/workflow_package.py` — dependency-free install/check/rollback engine; the PowerShell and POSIX installers are thin adapters.
 
@@ -20,12 +21,12 @@ Consumer repositories inherit the reusable package, but remain authoritative for
 
 ## Version and update contract
 
-`package.json` is the single version source. The current package is `1.0.1`; `package-lock.json` must match it. Shared-root receipts record that SemVer and hashes for every package-owned skill and schema file. When a consumer is selected, the managed `AGENTS.md` block carries its own per-consumer policy receipt with the workflow version and normalized policy hash. `check` reports:
+`package.json` is the single version source. The current package is `1.1.0`; `package-lock.json` must match it. Shared-root receipts record that SemVer and hashes for every package-owned skill and schema file. When a consumer is selected, the managed `AGENTS.md` block carries its own per-consumer policy receipt with the workflow version and normalized policy hash. `check` reports:
 
-- `current` when both shared roots and the selected consumer policy have the expected version, receipt, owned paths, and hashes;
-- `stale` for safe-to-update version/content/missing-owned-path/obsolete-path drift under a valid receipt, or consumer schema shadowing;
-- `missing` when a shared root has no valid receipt or a selected consumer has no managed policy block;
-- `conflict` when selected consumer policy markers are malformed or the managed body was edited after installation.
+- `current` when shared roots, selected consumer policy, and canonical project-bootstrap structure are current (the separately reported semantic audit may still be pending);
+- `stale` for safe-to-update shared version/content drift, consumer schema shadowing, or an existing project config/audit that needs manual reconciliation;
+- `missing` when a shared root has no valid receipt, a selected consumer has no managed policy block, or canonical project files are absent;
+- `conflict` when policy metadata/body or canonical project paths are malformed, unsafe, or incompatible; conflicts never advertise an overwriting update.
 
 The package never pulls Git. Update the central checkout by your normal Git workflow, run `check`, and execute its same-target `update_command`/`update_argv`. Missing and stale remediation retains the selected consumer path; conflicts require manual reconciliation and never advertise an overwriting update. A version bump tells agents that a release changed; hashes still detect an unpublished local-content drift at the same version.
 
@@ -34,13 +35,13 @@ The package never pulls Git. Update the central checkout by your normal Git work
 Preview the first Orca installation. Initial adoption requires a dedicated empty backup root, even in dry-run examples so the exact command can be promoted safely:
 
 ```powershell
-.\scripts\install.ps1 -Target orca -ConsumerRepo C:\projects\consumer -BackupRoot C:\workflow-backups\openspec-1.0.1 -DryRun -Json
+.\scripts\install.ps1 -Target orca -ConsumerRepo C:\projects\consumer -BackupRoot C:\workflow-backups\openspec-1.1.0 -DryRun -Json
 ```
 
 Install after the preview and the required owner approval for the persistent shared-profile write:
 
 ```powershell
-.\scripts\install.ps1 -Target orca -ConsumerRepo C:\projects\consumer -BackupRoot C:\workflow-backups\openspec-1.0.1
+.\scripts\install.ps1 -Target orca -ConsumerRepo C:\projects\consumer -BackupRoot C:\workflow-backups\openspec-1.1.0
 ```
 
 Check the installed package and resolve effective schemas in a consumer without editing it:
@@ -54,8 +55,8 @@ For Codex or Omnigent, replace `orca` with `codex` or `omnigent`. Codex honors `
 ## Install on POSIX
 
 ```sh
-./scripts/install.sh install --target orca --consumer-repo /path/to/consumer --backup-root "$HOME/workflow-backups/openspec-1.0.1" --dry-run --json
-./scripts/install.sh install --target orca --consumer-repo /path/to/consumer --backup-root "$HOME/workflow-backups/openspec-1.0.1"
+./scripts/install.sh install --target orca --consumer-repo /path/to/consumer --backup-root "$HOME/workflow-backups/openspec-1.1.0" --dry-run --json
+./scripts/install.sh install --target orca --consumer-repo /path/to/consumer --backup-root "$HOME/workflow-backups/openspec-1.1.0"
 ./scripts/install.sh check --target orca --consumer-repo /path/to/consumer --json
 ```
 
@@ -65,7 +66,11 @@ The installer recursively copies package-owned skills and schemas, preserves unr
 python .\scripts\workflow_package.py rollback --target orca --backup-root C:\workflow-backups\openspec-1.0.0
 ```
 
-`--json` exposes the selected target, package version, root status/issues, consumer policy state, remediation argv, and optional schema resolution. For `check`, `--consumer-repo` is read only: it reports the effective `evidence-core`/`evidence-heavy` source, project-local shadowing, and managed policy state. For `install`, the same explicit option creates a missing root `AGENTS.md`, adopts an exact current unmarked copy, upgrades the hash-pinned known `1.0.0` unmarked copy, appends one managed block after unrelated instructions, or replaces only an intact stale managed block. It never uses fuzzy policy matching and never reconciles or deletes consumer schemas.
+`--consumer-repo` selects which repository is being adopted; it is not tied to Orca or any other host. Pass it to the one install/check command that targets a repository. After installation, the committed repository files are available to every repository-aware agent without reinstalling them for each task or IDE. Omitting the option retains shared-profile-only behavior and never infers the current directory as a consumer.
+
+`--json` exposes the selected target, package version, root status/issues, consumer policy state, project-bootstrap state, semantic-audit status, remediation argv, and optional schema resolution. For `check`, `--consumer-repo` is read only: it reports the effective `evidence-core`/`evidence-heavy` source, project-local shadowing, managed policy, and canonical project knowledge state. For `install`, the same explicit option also creates only missing `docs/project-handoff/` files and a missing `openspec/config.yaml`, with structural observations and `status=pending`; it never invents business facts or rewrites existing project docs/YAML. A repository-aware agent completes the semantic audit before substantial work and thereafter maintains affected business, integration, technical, open-issue, and normative OpenSpec layers in the same change.
+
+The policy operation still creates a missing root `AGENTS.md`, adopts an exact current unmarked copy, upgrades the hash-pinned known `1.0.0` unmarked copy, appends one managed block after unrelated instructions, or replaces only an intact stale managed block. It never uses fuzzy policy matching and never reconciles or deletes consumer schemas.
 
 `policy/AGENTS.fragment.md` remains outside the two shared-root receipts because one shared profile can serve many repositories. Its marked consumer copy has a per consumer policy receipt in the begin marker. Text outside the begin/end markers remains repository-owned and is preserved. A locally edited, duplicated, partial, invalid, or symlinked managed block is `conflict` and blocks install before shared-root mutation. Without `--consumer-repo`, installation retains its shared-only behavior and does not select an `AGENTS.md`.
 

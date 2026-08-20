@@ -4,7 +4,7 @@ $env:PYTHONUTF8 = '1'
 
 Push-Location (Join-Path $repoRoot 'scripts')
 try {
-    python -m unittest -v test_workflow_package.py test_shared_policy.py
+    python -m unittest -v test_workflow_package.py test_workflow_project_bootstrap.py test_shared_policy.py
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 } finally {
     Pop-Location

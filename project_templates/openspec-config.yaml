@@ -1,0 +1,21 @@
+schema: evidence-core
+context: |
+  Repository-specific authority and reading order are in AGENTS.md and docs/project-handoff/README.md.
+  The primary audit state and inspected evidence are in docs/project-handoff/project-audit.md.
+  Canonical navigation roots are docs/project-handoff/, openspec/specs/, openspec/changes/, and
+  openspec/changes/archive/.
+  Integrated current business processes, integrations, technical architecture, and known limits are
+  in docs/project-handoff/. Normative current observable behavior is in openspec/specs/; unarchived
+  deltas are in openspec/changes/; archived rationale and implementation history are in
+  openspec/changes/archive/. Use Git history only when older provenance is required.
+  Missing project facts remain unknown and must not be invented from this scaffold.
+
+operations:
+  apply:
+    guidance:
+      - Read AGENTS.md, the primary audit, and affected project-handoff documents before substantial implementation.
+      - Update affected project knowledge and OpenSpec lifecycle layers in the same change as behavior.
+  archive:
+    guidance:
+      - Require implementation evidence, verification, required review, and a non-overlapping Git preflight.
+      - Inspect the archive move and current-spec merge as a semantic diff; stop on ambiguity or scenario loss.
