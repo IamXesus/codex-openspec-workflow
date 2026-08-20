@@ -58,7 +58,14 @@ artifacts:
       Derive every task from accepted requirements. Preserve contract v3 and put one
       `openspec-trace` marker with exact REQ ids and concrete planned verification on each
       implementation checkbox. For explicit `skip_specs: true`, use `requirements=none` while still recording concrete planned verification. The validator prints the read-only requirement-to-decision-to-task-to-verification
-      matrix; do not create another artifact. Use numbered headings and `- [ ] X.Y`
+      matrix; do not create another artifact.
+      For work that creates or materially moves a production type, derive a placement task or
+      verification that inspects neighboring feature structure, namespaces or module boundaries,
+      dependency registration, and relevant architecture tests. Plan placement by feature and
+      cohesive responsibility; do not require generic Interfaces/Implementations buckets solely
+      by declaration type or incidental legacy reorganization. A material ownership restructure
+      belongs in accepted evidence-heavy scope with architecture review. Concrete examples remain
+      authoritative in the consumer repository. Use numbered headings and `- [ ] X.Y`
       checkboxes. Every task-like numbered N.M line must be a checkbox; do not hide roadmap,
       planning, or implementation work as plain text outside the task runner. End the bounded change with one independent read-only review checkpoint after
       implementation and targeted verification. Preserve the review-contract markers from the
@@ -90,8 +97,16 @@ apply:
     upstream HEAD, dirty state, and divergence. Reconcile referenced old commits as evidence/artifacts,
     never an automatic implementation base. Then implement only accepted requirements and
     record branch/HEAD/upstream and the dirty baseline before editing. Mark tasks complete only as
-    layer-appropriate evidence is produced. After targeted verification, run one independent
-    read-only review before marking the change complete or handing it off; resolve blocking findings and re-review affected
+    layer-appropriate evidence is produced. Before creating or materially moving a production type,
+    inspect neighboring feature structure,
+    namespaces or module boundaries, dependency registration, and relevant architecture tests.
+    Place code by feature and cohesive responsibility; use responsibility-named subfolders only
+    when they materially improve navigation, never generic Interfaces/Implementations buckets
+    solely by declaration type. Do not reorganize adjacent legacy code incidentally. A material
+    ownership, namespace, or registration restructure requires accepted evidence-heavy scope and
+    architecture review; consumer-specific examples remain local authority. After targeted
+    verification, run one independent read-only review before marking the change complete or
+    handing it off; resolve blocking findings and re-review affected
     contracts after fixes. If no independent reviewer is available, report the gate as not run and
     do not complete or hand off the change without explicit user disposition. A reviewer must declare
     full or partial coverage, checked requirements, and exclusions; partial coverage cannot close the
