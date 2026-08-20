@@ -1,13 +1,36 @@
+import os
+import shutil
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from validate_change import run_gate
+from validate_change import resolve_openspec_executable, run_gate
 
 
 class CompleteGateTests(unittest.TestCase):
+    def test_executable_resolution_is_platform_specific_and_isolated(self):
+        with tempfile.TemporaryDirectory() as isolated_path:
+            posix_executable = Path(isolated_path) / "openspec"
+            posix_executable.write_text("isolated fixture\n", encoding="utf-8")
+            os.chmod(posix_executable, 0o755)
+            finder = lambda candidate: shutil.which(candidate, path=isolated_path)
+            self.assertEqual(str(posix_executable), resolve_openspec_executable("posix", finder))
+            self.assertIsNone(finder("openspec.cmd"))
+        self.assertEqual(
+            "C:/isolated/openspec.cmd",
+            resolve_openspec_executable(
+                "nt", lambda candidate: "C:/isolated/openspec.cmd" if candidate == "openspec.cmd" else None,
+            ),
+        )
+        self.assertEqual(
+            "C:/isolated/openspec",
+            resolve_openspec_executable(
+                "nt", lambda candidate: "C:/isolated/openspec" if candidate == "openspec" else None,
+            ),
+        )
+
     def make_repo(self, source: str = "user:USER-001") -> Path:
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)

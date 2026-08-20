@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -12,10 +13,17 @@ from pathlib import Path
 from validate_requirements import format_traceability_matrix, validate_change
 
 
+def resolve_openspec_executable(platform_name: str | None = None, finder=None) -> str | None:
+    host = platform_name or os.name
+    find = finder or shutil.which
+    candidates = ("openspec.cmd", "openspec") if host == "nt" else ("openspec",)
+    return next((executable for candidate in candidates if (executable := find(candidate))), None)
+
+
 def run_gate(repo: Path, change: str) -> int:
     repo = repo.resolve()
     change_dir = repo / "openspec" / "changes" / change
-    executable = shutil.which("openspec.cmd") or shutil.which("openspec")
+    executable = resolve_openspec_executable()
     if executable is None:
         print("ERROR: OpenSpec CLI was not found", file=sys.stderr)
         return 2

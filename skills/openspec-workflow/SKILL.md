@@ -7,6 +7,15 @@ description: "Use for software-change planning requests such as 'сделай п
 
 Use the official OpenSpec CLI, schemas, and generated workflows as the only artifact engine. This skill only routes natural language, selects the existing schema, and enforces evidence before tasks or apply.
 
+## Select The OpenSpec Executable
+
+Before invoking OpenSpec, select one executable for the current platform and use it for every `new`, `status`, `instructions`, `init`, apply-phase, and check-phase invocation:
+
+- On POSIX/Linux use `openspec`.
+- On Windows use `openspec.cmd`, or `openspec` only when the active shell correctly resolves the installed launcher through PATHEXT.
+
+In commands below, `<openspec>` is a documentation placeholder for that selected executable, not a shell variable. OpenSpec CLI 1.8.x is a separate prerequisite; this workflow does not install it.
+
 ## Route The Task
 
 1. Inspect the repository and confirmed request before choosing a workflow.
@@ -17,10 +26,10 @@ Use the official OpenSpec CLI, schemas, and generated workflows as the only arti
 
 ## Natural-Language State Machine
 
-Do not select a phase from the user's exact wording. Resolve the active change and run `openspec.cmd status --change <name> --json`; its first ready artifact is the next planning step.
+Do not select a phase from the user's exact wording. Resolve the active change and run `<openspec> status --change <name> --json`; its first ready artifact is the next planning step.
 Native status controls artifact order only. `isPlanningComplete` means files exist; it is not semantic approval and must never by itself trigger a ready-to-apply message.
 
-- A new planning request such as "сделай план" starts the official stepwise path: select the schema by the routing rules above, then run `openspec.cmd new change "<name>" --schema <selected-schema>`. Never use `openspec-propose` or fast-forward.
+- A new planning request such as "сделай план" starts the official stepwise path: select the schema by the routing rules above, then run `<openspec> new change "<name>" --schema <selected-schema>`. Never use `openspec-propose` or fast-forward.
 - If the intent is materially unclear, use `openspec-explore` first. Explore creates no artifacts and does not invent the missing decision.
 - On an active change, ordinary continuation such as "ок", "делай", "дальше", or "продолжай" means `openspec-continue-change`: create exactly one ready artifact and stop.
 - Continuation authorizes the next artifact only. It does not change a `proposed` decision to `accepted` and does not answer an open `Q-*` item.
@@ -31,10 +40,10 @@ Native status controls artifact order only. `isPlanningComplete` means files exi
 ## Start Or Continue A Change
 
 - Work inside the target repository. Never use a shared workspace folder for a single-project change.
-- If the repository has no `openspec/` setup and the user explicitly requested a software plan/spec or the accepted implementation requires one, initialize it with `openspec.cmd init <repo> --tools codex --no-animation --no-copilot-cloud`. Do not force the `core` profile; use the configured stepwise profile.
+- If the repository has no `openspec/` setup and the user explicitly requested a software plan/spec or the accepted implementation requires one, initialize it with `<openspec> init <repo> --tools codex --no-animation --no-copilot-cloud`. Do not force the `core` profile; use the configured stepwise profile.
 - After initialization, set the repository's `openspec/config.yaml` default `schema` to `evidence-core`; select `evidence-heavy` explicitly for heavy changes.
-- Create changes through the official CLI with `openspec.cmd new change "<name>" --schema evidence-core` or `--schema evidence-heavy`; advance through `openspec-continue-change` one artifact at a time. Do not delegate schema selection to the generated `openspec-new-change` default-only rule.
-- Follow `openspec.cmd status --change <change-name> --json` and `openspec.cmd instructions <artifact> --change <change-name> --json`; do not assume artifact paths or readiness.
+- Create changes through the official CLI with `<openspec> new change "<name>" --schema evidence-core` or `--schema evidence-heavy`; advance through `openspec-continue-change` one artifact at a time. Do not delegate schema selection to the generated `openspec-new-change` default-only rule.
+- Follow `<openspec> status --change <change-name> --json` and `<openspec> instructions <artifact> --change <change-name> --json`; do not assume artifact paths or readiness.
 - Keep stock OpenSpec current-state specs under `openspec/specs/` and proposed deltas under `openspec/changes/`.
 - Do not use `openspec-propose` or `openspec-ff-change`; they bypass the required one-artifact review rhythm.
 
