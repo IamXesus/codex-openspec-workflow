@@ -1,6 +1,6 @@
 {
   "name": "codex-openspec-workflow",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "devDependencies": {
     "promptfoo": "0.122.0"

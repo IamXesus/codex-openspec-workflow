@@ -24,11 +24,14 @@ from workflow_package_state import (
     contained_path,
     ensure_disjoint,
     inventory,
+    plan_consumer_policy,
+    policy_source,
     read_receipt,
     receipt_payload,
     sha256,
     source_manifest,
     validated_backup_manifest,
+    write_consumer_policy,
 )
 
 PACKAGE_NAME = "codex-openspec-workflow"
@@ -100,8 +103,12 @@ def resolve_roots(target: str, agent_root: str | None, schema_root: str | None) 
 def policy_state(root: Path) -> dict[str, Any]:
     policy = root / "policy" / "AGENTS.fragment.md"
     if not policy.is_file():
-        raise PackageError(f"Required manual policy asset is missing: {policy}")
-    return {"path": str(policy), "sha256": sha256(policy), "manual_review_required": True}
+        raise PackageError(f"Required policy asset is missing: {policy}")
+    _, digest = policy_source(policy)
+    return {
+        "source_path": str(policy), "available_sha256": digest,
+        "status": "not-selected", "consumer_required": True,
+    }
 
 
 def available_adoption_backup(version: str) -> Path:
@@ -120,6 +127,8 @@ def update_argv(args: argparse.Namespace, roots: dict[str, Path], version: str, 
     command += ["--agent-root", str(roots["agent-skills"]), "--schema-root", str(roots["openspec-schemas"])]
     if needs_backup:
         command += ["--backup-root", str(available_adoption_backup(version))]
+    if args.consumer_repo:
+        command += ["--consumer-repo", str(Path(args.consumer_repo).resolve())]
     return command
 
 
@@ -152,6 +161,15 @@ def consumer_resolution(consumer: Path, schema_root: Path) -> dict[str, Any]:
 
 
 def install(args: argparse.Namespace, root: Path, version: str, roots: dict[str, Path]) -> dict[str, Any]:
+    policy = policy_state(root)
+    policy_content = None
+    if args.consumer_repo:
+        policy, policy_content = plan_consumer_policy(
+            Path(args.consumer_repo), root / "policy" / "AGENTS.fragment.md", version,
+        )
+        policy["source_path"] = str(root / "policy" / "AGENTS.fragment.md")
+        if policy["status"] == "conflict":
+            raise PackageError("Consumer policy conflict blocks installation", {"policy": policy})
     backup = Path(args.backup_root).expanduser().resolve() if args.backup_root else None
     ensure_disjoint(roots, backup)
     manifests = {role: source_manifest(root, role) for role in roots}
@@ -175,7 +193,7 @@ def install(args: argparse.Namespace, root: Path, version: str, roots: dict[str,
         "operation": "install", "target": args.target, "workflow_version": version,
         "roots": {role: str(path) for role, path in roots.items()}, "dry_run": args.dry_run,
         "initial_adoption": adoption, "backup_required": adoption, "legacy_extras": legacy_extras,
-        "policy": policy_state(root),
+        "policy": policy,
     }
     if legacy_extras:
         raise PackageError("Unresolved legacy-extra files block installation", result)
@@ -203,6 +221,10 @@ def install(args: argparse.Namespace, root: Path, version: str, roots: dict[str,
         temporary = receipt_path.with_suffix(receipt_path.suffix + ".tmp")
         temporary.write_text(json.dumps(receipt_payload(version, role, manifests[role]), indent=2, sort_keys=True) + "\n", encoding="utf-8")
         temporary.replace(receipt_path)
+    if policy_content is not None:
+        write_consumer_policy(Path(policy["path"]), policy_content)
+        policy["status"] = "current"
+        policy["installed_version"] = version
     result["status"] = "current"
     return result
 
@@ -210,23 +232,35 @@ def install(args: argparse.Namespace, root: Path, version: str, roots: dict[str,
 def check(args: argparse.Namespace, root: Path, version: str, roots: dict[str, Path]) -> dict[str, Any]:
     ensure_disjoint(roots)
     root_results = [check_root(role, destination, version, source_manifest(root, role)) for role, destination in roots.items()]
-    statuses = {item["status"] for item in root_results}
-    status = "missing" if "missing" in statuses else "stale" if "stale" in statuses else "current"
+    root_statuses = {item["status"] for item in root_results}
+    status = "missing" if "missing" in root_statuses else "stale" if "stale" in root_statuses else "current"
+    policy = policy_state(root)
     result: dict[str, Any] = {
         "operation": "check", "target": args.target, "status": status, "workflow_version": version,
         "roots": root_results,
-        "policy": policy_state(root),
+        "policy": policy,
     }
-    if status != "current":
-        argv = update_argv(args, roots, version, status == "missing")
-        result["update_argv"] = argv
-        result["update_command"] = display_command(argv)
     if args.consumer_repo:
-        result["consumer"] = consumer_resolution(Path(args.consumer_repo).resolve(), roots["openspec-schemas"])
+        consumer = Path(args.consumer_repo).resolve()
+        policy, _ = plan_consumer_policy(consumer, root / "policy" / "AGENTS.fragment.md", version)
+        policy["source_path"] = str(root / "policy" / "AGENTS.fragment.md")
+        result["policy"] = policy
+        if policy["status"] == "conflict":
+            result["status"] = "conflict"
+            result["policy_remediation"] = "Reconcile the reported managed AGENTS.md block; check never overwrites a conflict."
+        elif policy["status"] == "missing" and result["status"] != "conflict":
+            result["status"] = "missing"
+        elif policy["status"] == "stale" and result["status"] == "current":
+            result["status"] = "stale"
+        result["consumer"] = consumer_resolution(consumer, roots["openspec-schemas"])
         if not result["consumer"]["current"]:
             if result["status"] == "current":
                 result["status"] = "stale"
             result["consumer_remediation"] = "Reconcile the reported project-local schema shadowing in the consumer; check never edits it."
+    if result["status"] in {"missing", "stale"}:
+        argv = update_argv(args, roots, version, "missing" in root_statuses)
+        result["update_argv"] = argv
+        result["update_command"] = display_command(argv)
     return result
 
 
@@ -310,12 +344,18 @@ def emit(result: dict[str, Any], json_output: bool) -> None:
         print(f"update: {result['update_command']}")
     if result.get("consumer_remediation"):
         print(f"consumer remediation: {result['consumer_remediation']}")
+    if result.get("policy_remediation"):
+        print(f"policy remediation: {result['policy_remediation']}")
     if result.get("error"):
         print(f"error: {result['error']}")
     if result.get("recovery"):
         print(f"recovery: {result['recovery']}")
     if result.get("policy"):
-        print(f"review policy manually: {result['policy']['path']}")
+        policy = result["policy"]
+        path = f" at {policy['path']}" if policy.get("path") else ""
+        print(f"consumer policy: {policy.get('status')}{path}")
+        for issue in policy.get("issues", []):
+            print(f"  - {issue.get('kind', 'issue')}: {issue.get('detail', '')}")
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -20,6 +20,8 @@ class WorkflowPackageTests(unittest.TestCase):
         self.agent = self.temp / "agent"
         self.schemas = self.temp / "schemas"
         self.backup = self.temp / "backup"
+        self.consumer = self.temp / "consumer"
+        self.consumer.mkdir()
         self.root = package.repo_root()
         self.version = package.load_version(self.root)
         self.roots = {"agent-skills": self.agent, "openspec-schemas": self.schemas}
@@ -36,7 +38,7 @@ class WorkflowPackageTests(unittest.TestCase):
         return argparse.Namespace(**values)
 
     def test_version_metadata_is_single_valid_source(self) -> None:
-        self.assertEqual("1.0.0", self.version)
+        self.assertEqual("1.0.1", self.version)
         package.validate_lock_metadata(self.root)
         metadata_root = self.temp / "metadata"
         metadata_root.mkdir()
@@ -189,11 +191,238 @@ class WorkflowPackageTests(unittest.TestCase):
         self.assertEqual("retained\n", (retained / "backup-manifest.json").read_text(encoding="utf-8"))
 
     def test_missing_precedence_survives_consumer_shadowing(self) -> None:
-        shadowing = {"repo": str(self.temp / "consumer"), "schemas": [], "current": False}
+        shadowing = {"repo": str(self.consumer), "schemas": [], "current": False}
         with mock.patch("workflow_package.consumer_resolution", return_value=shadowing):
-            result = package.check(self.args(consumer_repo=str(self.temp / "consumer")), self.root, self.version, self.roots)
+            result = package.check(self.args(consumer_repo=str(self.consumer)), self.root, self.version, self.roots)
         self.assertEqual("missing", result["status"])
         self.assertIn("consumer_remediation", result)
+
+    def test_consumer_policy_create_check_and_idempotent_reinstall(self) -> None:
+        agents = self.consumer / "AGENTS.md"
+        installed = package.install(
+            self.args(consumer_repo=str(self.consumer)), self.root, self.version, self.roots,
+        )
+        self.assertEqual("current", installed["policy"]["status"])
+        first = agents.read_bytes()
+        self.assertEqual(1, first.count(b"codex-openspec-workflow-policy:begin"))
+        self.assertEqual(1, first.count(b"codex-openspec-workflow-policy:end"))
+
+        current_resolution = {"repo": str(self.consumer), "schemas": [], "current": True}
+        with mock.patch("workflow_package.consumer_resolution", return_value=current_resolution):
+            checked = package.check(
+                self.args(consumer_repo=str(self.consumer), backup_root=None), self.root, self.version, self.roots,
+            )
+        self.assertEqual("current", checked["status"])
+        self.assertEqual("current", checked["policy"]["status"])
+
+        package.install(
+            self.args(consumer_repo=str(self.consumer), backup_root=None), self.root, self.version, self.roots,
+        )
+        self.assertEqual(first, agents.read_bytes())
+
+    def test_install_without_consumer_does_not_select_agents_file(self) -> None:
+        package.install(self.args(), self.root, self.version, self.roots)
+        self.assertFalse((self.consumer / "AGENTS.md").exists())
+
+    def test_existing_policy_prefix_and_newline_style_are_preserved(self) -> None:
+        agents = self.consumer / "AGENTS.md"
+        prefix = b"# Consumer rules\r\n\r\nKeep this exact"
+        agents.write_bytes(prefix)
+        package.install(
+            self.args(consumer_repo=str(self.consumer)), self.root, self.version, self.roots,
+        )
+        installed = agents.read_bytes()
+        self.assertTrue(installed.startswith(prefix + b"\r\n"))
+        self.assertIn(b"-->\r\n## Evidence, Scope, And Authority\r\n", installed)
+        self.assertEqual(1, installed.count(b"codex-openspec-workflow-policy:begin"))
+
+    def test_exact_unmarked_fragment_is_adopted_without_duplication(self) -> None:
+        source = (self.root / "policy" / "AGENTS.fragment.md").read_bytes()
+        agents = self.consumer / "AGENTS.md"
+        agents.write_bytes(source)
+        package.install(
+            self.args(consumer_repo=str(self.consumer)), self.root, self.version, self.roots,
+        )
+        installed = agents.read_text(encoding="utf-8")
+        self.assertEqual(1, installed.count("## Evidence, Scope, And Authority"))
+        self.assertEqual(1, installed.count("codex-openspec-workflow-policy:begin"))
+
+    def test_stale_policy_replaces_only_managed_block_and_retains_consumer_in_update(self) -> None:
+        agents = self.consumer / "AGENTS.md"
+        agents.write_text("# Local\n", encoding="utf-8")
+        package.install(
+            self.args(consumer_repo=str(self.consumer)), self.root, self.version, self.roots,
+        )
+        current = agents.read_text(encoding="utf-8")
+        agents.write_text(current.replace(f"version={self.version}", "version=0.9.0"), encoding="utf-8")
+        resolution = {"repo": str(self.consumer), "schemas": [], "current": True}
+        with mock.patch("workflow_package.consumer_resolution", return_value=resolution):
+            stale = package.check(
+                self.args(consumer_repo=str(self.consumer), backup_root=None), self.root, self.version, self.roots,
+            )
+        self.assertEqual("stale", stale["policy"]["status"])
+        self.assertIn("--consumer-repo", stale["update_argv"])
+        self.assertEqual(str(self.consumer.resolve()), stale["update_argv"][-1])
+        self.assertNotIn("--backup-root", stale["update_argv"])
+
+        package.install(
+            self.args(consumer_repo=str(self.consumer), backup_root=None), self.root, self.version, self.roots,
+        )
+        repaired = agents.read_text(encoding="utf-8")
+        self.assertTrue(repaired.startswith("# Local\n"))
+        self.assertIn(f"version={self.version}", repaired)
+
+    def test_crlf_stale_replacement_preserves_exact_prefix_suffix_and_bom(self) -> None:
+        begin_token = b"<!-- codex-openspec-workflow-policy:begin"
+        end_token = b"<!-- codex-openspec-workflow-policy:end -->"
+        for index, bom in enumerate((b"", b"\xef\xbb\xbf")):
+            with self.subTest(bom=bool(bom)):
+                consumer = self.temp / f"crlf-consumer-{index}"
+                consumer.mkdir()
+                agents = consumer / "AGENTS.md"
+                agents.write_bytes(bom + b"# Head\r\n")
+                package.install(
+                    self.args(
+                        consumer_repo=str(consumer),
+                        backup_root=str(self.backup) if index == 0 else None,
+                    ),
+                    self.root, self.version, self.roots,
+                )
+                stale = agents.read_bytes().replace(
+                    f"version={self.version}".encode(), b"version=0.9.0", 1,
+                ).replace(end_token, end_token + b"\r\n# Tail", 1)
+                if bom:
+                    stale = stale.removesuffix(b"\r\n")
+                prefix = stale[:stale.index(begin_token)]
+                suffix_start = stale.index(end_token) + len(end_token)
+                suffix = stale[suffix_start:]
+                agents.write_bytes(stale)
+
+                package.install(
+                    self.args(consumer_repo=str(consumer), backup_root=None),
+                    self.root, self.version, self.roots,
+                )
+                repaired = agents.read_bytes()
+                self.assertEqual(prefix, repaired[:repaired.index(begin_token)])
+                repaired_suffix = repaired[repaired.index(end_token) + len(end_token):]
+                self.assertEqual(suffix, repaired_suffix)
+
+    def test_modified_managed_body_conflicts_before_any_install_mutation(self) -> None:
+        agents = self.consumer / "AGENTS.md"
+        package.install(
+            self.args(consumer_repo=str(self.consumer)), self.root, self.version, self.roots,
+        )
+        agents.write_text(
+            agents.read_text(encoding="utf-8").replace("Treat missing facts", "Locally changed facts", 1),
+            encoding="utf-8",
+        )
+        before = {
+            str(path.relative_to(self.temp)): package.sha256(path)
+            for path in self.temp.rglob("*") if path.is_file()
+        }
+        with self.assertRaises(package.PackageError) as raised:
+            package.install(
+                self.args(consumer_repo=str(self.consumer), backup_root=None), self.root, self.version, self.roots,
+            )
+        self.assertIn("conflict", str(raised.exception).lower())
+        after = {
+            str(path.relative_to(self.temp)): package.sha256(path)
+            for path in self.temp.rglob("*") if path.is_file()
+        }
+        self.assertEqual(before, after)
+        resolution = {"repo": str(self.consumer), "schemas": [], "current": True}
+        with mock.patch("workflow_package.consumer_resolution", return_value=resolution):
+            checked = package.check(
+                self.args(consumer_repo=str(self.consumer), backup_root=None), self.root, self.version, self.roots,
+            )
+        self.assertEqual("conflict", checked["status"])
+        self.assertEqual("conflict", checked["policy"]["status"])
+        self.assertNotIn("update_argv", checked)
+
+    def test_malformed_policy_markers_and_symlink_are_conflicts(self) -> None:
+        agents = self.consumer / "AGENTS.md"
+        begin = (
+            "<!-- codex-openspec-workflow-policy:begin format=1 version=1.0.0 "
+            + "sha256=" + "0" * 64 + " -->"
+        )
+        end = "<!-- codex-openspec-workflow-policy:end -->"
+        variants = (
+            begin + "\nbody\n",
+            end + "\n",
+            end + "\n" + begin + "\nbody\n",
+            begin + "\nbody\n" + end + "\n" + begin + "\nbody\n" + end + "\n",
+            begin.replace("format=1", "format=x") + "\nbody\n" + end + "\n",
+            "  " + begin + "\nbody\n" + end + "\n",
+        )
+        for text in variants:
+            with self.subTest(text=text[:50]):
+                agents.write_text(text, encoding="utf-8")
+                state, replacement = package.plan_consumer_policy(
+                    self.consumer, self.root / "policy" / "AGENTS.fragment.md", self.version,
+                )
+                self.assertEqual("conflict", state["status"])
+                self.assertIsNone(replacement)
+
+        body, digest = package.policy_source(self.root / "policy" / "AGENTS.fragment.md")
+        invalid_version = (
+            "<!-- codex-openspec-workflow-policy:begin format=1 version=banana "
+            f"sha256={digest} -->\n{body}\n{end}\n"
+        )
+        agents.write_text(invalid_version, encoding="utf-8")
+        state, replacement = package.plan_consumer_policy(
+            self.consumer, self.root / "policy" / "AGENTS.fragment.md", self.version,
+        )
+        self.assertEqual("conflict", state["status"])
+        self.assertIsNone(replacement)
+        before = {
+            str(path.relative_to(self.temp)): package.sha256(path)
+            for path in self.temp.rglob("*") if path.is_file()
+        }
+        with self.assertRaises(package.PackageError):
+            package.install(
+                self.args(consumer_repo=str(self.consumer)), self.root, self.version, self.roots,
+            )
+        after = {
+            str(path.relative_to(self.temp)): package.sha256(path)
+            for path in self.temp.rglob("*") if path.is_file()
+        }
+        self.assertEqual(before, after)
+
+        valid = (
+            "<!-- codex-openspec-workflow-policy:begin "
+            f"format=1 version={self.version} sha256={digest} -->\n{body}\n{end}\n"
+        )
+        for extra in (
+            "<!-- codex-openspec-workflow-policy:begin format=x -->\n",
+            "<!-- codex-openspec-workflow-policy:end invalid -->\n",
+        ):
+            with self.subTest(extra=extra):
+                agents.write_text(valid + extra, encoding="utf-8")
+                state, replacement = package.plan_consumer_policy(
+                    self.consumer, self.root / "policy" / "AGENTS.fragment.md", self.version,
+                )
+                self.assertEqual("conflict", state["status"])
+                self.assertIsNone(replacement)
+
+        agents.write_bytes(b"\xff\xfe\x00")
+        state, replacement = package.plan_consumer_policy(
+            self.consumer, self.root / "policy" / "AGENTS.fragment.md", self.version,
+        )
+        self.assertEqual("conflict", state["status"])
+        self.assertIsNone(replacement)
+
+        agents.unlink()
+        target = self.temp / "outside-agents.md"
+        target.write_text("outside\n", encoding="utf-8")
+        try:
+            agents.symlink_to(target)
+        except OSError as exc:
+            self.skipTest(f"File symlinks are unavailable: {exc}")
+        state, replacement = package.plan_consumer_policy(
+            self.consumer, self.root / "policy" / "AGENTS.fragment.md", self.version,
+        )
+        self.assertEqual("conflict", state["status"])
+        self.assertIsNone(replacement)
 
     def test_overlapping_managed_and_backup_roots_fail_before_mutation(self) -> None:
         same_roots = {"agent-skills": self.agent, "openspec-schemas": self.agent}
@@ -351,6 +580,82 @@ class WorkflowPackageTests(unittest.TestCase):
         self.assertIn("agent-skills: missing", human.stdout)
         self.assertIn("receipt-missing", human.stdout)
         self.assertIn("update:", human.stdout)
+
+    @unittest.skipUnless(shutil.which("openspec.cmd") or shutil.which("openspec"), "OpenSpec CLI is required")
+    def test_cli_consumer_policy_lifecycle_rehearsal(self) -> None:
+        script = str(self.root / "scripts" / "workflow_package.py")
+
+        def run(operation: str, consumer: Path, agent: Path, schemas: Path, backup: Path | None = None):
+            argv = [
+                sys.executable, script, operation, "--target", "orca",
+                "--agent-root", str(agent), "--schema-root", str(schemas),
+                "--consumer-repo", str(consumer), "--json",
+            ]
+            if backup is not None:
+                argv += ["--backup-root", str(backup)]
+            process = subprocess.run(
+                argv, cwd=self.root, text=True, encoding="utf-8", errors="replace",
+                capture_output=True, check=False,
+            )
+            return process, json.loads(process.stdout)
+
+        consumers = []
+        for name, initial in (
+            ("absent", None),
+            ("existing", "# Consumer-only rule\n"),
+            ("exact", (self.root / "policy" / "AGENTS.fragment.md").read_text(encoding="utf-8")),
+        ):
+            consumer = self.temp / f"cli-{name}"
+            schemas = consumer / "openspec" / "schemas"
+            schemas.parent.mkdir(parents=True)
+            (schemas.parent / "config.yaml").write_text("schema: evidence-core\n", encoding="utf-8")
+            if initial is not None:
+                (consumer / "AGENTS.md").write_text(initial, encoding="utf-8")
+            agent = self.temp / f"cli-agent-{name}"
+            backup = self.temp / f"cli-backup-{name}"
+            process, result = run("install", consumer, agent, schemas, backup)
+            self.assertEqual(0, process.returncode, process.stderr or process.stdout)
+            self.assertEqual("current", result["policy"]["status"])
+            installed = (consumer / "AGENTS.md").read_text(encoding="utf-8")
+            self.assertEqual(1, installed.count("codex-openspec-workflow-policy:begin"))
+            if name == "existing":
+                self.assertTrue(installed.startswith(initial))
+            if name == "exact":
+                self.assertEqual(1, installed.count("## Evidence, Scope, And Authority"))
+            consumers.append((consumer, agent, schemas))
+
+        consumer, agent, schemas = consumers[1]
+        agents = consumer / "AGENTS.md"
+        agents.write_text(
+            agents.read_text(encoding="utf-8").replace(f"version={self.version}", "version=0.9.0", 1),
+            encoding="utf-8",
+        )
+        process, stale = run("check", consumer, agent, schemas)
+        self.assertEqual(1, process.returncode)
+        self.assertEqual("stale", stale["policy"]["status"])
+        process, repaired = run("install", consumer, agent, schemas)
+        self.assertEqual(0, process.returncode, process.stderr or process.stdout)
+        self.assertEqual("current", repaired["policy"]["status"])
+
+        agents.write_text(
+            agents.read_text(encoding="utf-8").replace("Treat missing facts", "Locally changed facts", 1),
+            encoding="utf-8",
+        )
+        before = {
+            str(path.relative_to(self.temp)): package.sha256(path)
+            for path in self.temp.rglob("*") if path.is_file()
+        }
+        process, conflicted = run("check", consumer, agent, schemas)
+        self.assertEqual(1, process.returncode)
+        self.assertEqual("conflict", conflicted["policy"]["status"])
+        process, rejected = run("install", consumer, agent, schemas)
+        self.assertEqual(2, process.returncode)
+        self.assertEqual("conflict", rejected["policy"]["status"])
+        after = {
+            str(path.relative_to(self.temp)): package.sha256(path)
+            for path in self.temp.rglob("*") if path.is_file()
+        }
+        self.assertEqual(before, after)
 
     def test_cli_io_failure_still_emits_json(self) -> None:
         backup_file = self.temp / "backup-file"

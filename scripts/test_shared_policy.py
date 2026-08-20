@@ -110,24 +110,25 @@ class SharedPlacementPolicyTests(unittest.TestCase):
     def test_readme_matches_distribution_contract(self) -> None:
         text = normalized("README.md")
         for concept in (
-            "1.0.0",
+            "1.0.1",
             "single version source",
             "current",
             "stale",
             "missing",
+            "conflict",
             "update command",
             "update argv",
             "target orca",
             "backup root",
             "consumer repo",
             "read only",
-            "manual review required",
-            "outside installation receipts",
+            "managed block",
+            "per consumer policy receipt",
             "never pulls git",
         ):
             self.assertIn(concept, text, f"README lacks executable contract concept {concept!r}")
 
-    def test_documented_cli_and_manual_policy_boundary_are_executable(self) -> None:
+    def test_documented_cli_and_managed_policy_boundary_are_executable(self) -> None:
         parser = package.parser()
         for target in ("codex", "orca", "omnigent"):
             args = parser.parse_args(
@@ -148,12 +149,13 @@ class SharedPlacementPolicyTests(unittest.TestCase):
             self.assertTrue(args.json)
 
         install = parser.parse_args(
-            ["install", "--target", "orca", "--backup-root", "backup", "--dry-run"]
+            ["install", "--target", "orca", "--backup-root", "backup", "--consumer-repo", "consumer", "--dry-run"]
         )
         rollback = parser.parse_args(
             ["rollback", "--target", "orca", "--backup-root", "backup"]
         )
         self.assertTrue(install.dry_run)
+        self.assertEqual("consumer", install.consumer_repo)
         self.assertEqual("backup", rollback.backup_root)
 
         for relative in (
@@ -172,7 +174,7 @@ class SharedPlacementPolicyTests(unittest.TestCase):
             *source_manifest(ROOT, "openspec-schemas"),
         }
         self.assertFalse(any("agents.fragment" in path.lower() for path in installed_paths))
-        self.assertEqual("1.0.0", package.load_version(ROOT))
+        self.assertEqual("1.0.1", package.load_version(ROOT))
 
 
 if __name__ == "__main__":

@@ -30,7 +30,7 @@
 
 - Treat the installed central package as upstream for reusable schemas and templates, validators, skills, routing and lifecycle gates, and general authoring policy. A copied consumer asset is not an upstream source.
 - Keep each consumer repository authoritative for its OpenSpec context, business and technical documentation, navigation, deployment convention, and domain-specific examples. Project-local schemas may intentionally shadow shared schemas and require explicit reconciliation; never overwrite or remove them implicitly.
-- A freshness check is read-only. Installing the reusable package does not edit consumer repositories, merge this policy fragment, pull Git, publish a release, or authorize any external effect.
+- A freshness check is read-only. An install with an explicit consumer repository may create `AGENTS.md` or update only the intact centrally managed policy block; it never owns surrounding consumer instructions. Installation does not pull Git, publish a release, or authorize any external effect.
 
 ## Material UI
 

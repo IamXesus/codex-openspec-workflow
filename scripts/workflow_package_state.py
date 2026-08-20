@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import shutil
+import stat
+import tempfile
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
@@ -14,6 +17,23 @@ RECEIPT_FORMAT = 1
 BACKUP_FORMAT = 2
 SKILLS = ("openspec-workflow", "code-reviewer", "webapp-testing", "coding-guardrails", "architecture-review")
 SCHEMAS = ("evidence-core", "evidence-heavy")
+POLICY_FORMAT = 1
+POLICY_FILE = "AGENTS.md"
+POLICY_BEGIN_PREFIX = "<!-- codex-openspec-workflow-policy:begin"
+POLICY_END_PREFIX = "<!-- codex-openspec-workflow-policy:end"
+POLICY_BEGIN = POLICY_BEGIN_PREFIX + " format={format} version={version} sha256={sha256} -->"
+POLICY_END = POLICY_END_PREFIX + " -->"
+POLICY_BEGIN_RE = re.compile(
+    r"^<!-- codex-openspec-workflow-policy:begin format=(?P<format>\d+) "
+    r"version=(?P<version>[^\s]+) sha256=(?P<sha256>[0-9a-fA-F]{64}) -->(?=\r?$)",
+    re.MULTILINE,
+)
+POLICY_END_RE = re.compile(r"^<!-- codex-openspec-workflow-policy:end -->(?=\r?$)", re.MULTILINE)
+POLICY_SEMVER = re.compile(
+    r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
+    r"(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
+    r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$"
+)
 
 
 class PackageError(RuntimeError):
@@ -28,6 +48,170 @@ def sha256(path: Path) -> str:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def normalized_policy_body(text: str) -> str:
+    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+    return normalized[:-1] if normalized.endswith("\n") else normalized
+
+
+def policy_body_sha256(text: str) -> str:
+    return hashlib.sha256(normalized_policy_body(text).encode("utf-8")).hexdigest()
+
+
+def policy_source(path: Path) -> tuple[str, str]:
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise PackageError(f"Required policy asset is unreadable UTF-8: {path}") from exc
+    return normalized_policy_body(text), policy_body_sha256(text)
+
+
+def policy_line_ending(text: str) -> str:
+    found = [
+        (index, priority, ending)
+        for priority, ending in enumerate(("\r\n", "\n", "\r"))
+        if (index := text.find(ending)) >= 0
+    ]
+    return min(found)[2] if found else os.linesep
+
+
+def rendered_policy_block(body: str, version: str, digest: str, newline: str) -> str:
+    begin = POLICY_BEGIN.format(format=POLICY_FORMAT, version=version, sha256=digest)
+    rendered_body = body.replace("\n", newline)
+    return f"{begin}{newline}{rendered_body}{newline}{POLICY_END}"
+
+
+def _policy_result(path: Path, version: str, digest: str, status: str, **extra: Any) -> dict[str, Any]:
+    return {
+        "path": str(path),
+        "status": status,
+        "available_version": version,
+        "available_sha256": digest,
+        "issues": [],
+        **extra,
+    }
+
+
+def plan_consumer_policy(
+    consumer_root: Path, source_path: Path, version: str,
+) -> tuple[dict[str, Any], bytes | None]:
+    consumer = consumer_root.resolve()
+    if not consumer.is_dir():
+        raise PackageError(f"Consumer repository is not a directory: {consumer}")
+    canonical_body, canonical_digest = policy_source(source_path)
+    target = consumer / POLICY_FILE
+    try:
+        target = contained_path(consumer, POLICY_FILE)
+    except PackageError:
+        result = _policy_result(target, version, canonical_digest, "conflict")
+        result["issues"].append({"kind": "symlink", "detail": "managed policy path escapes the consumer root"})
+        return result, None
+    if target.is_symlink():
+        result = _policy_result(target, version, canonical_digest, "conflict")
+        result["issues"].append({"kind": "symlink", "detail": "managed policy path must be a regular file"})
+        return result, None
+    if not target.exists():
+        block = rendered_policy_block(canonical_body, version, canonical_digest, os.linesep)
+        return _policy_result(target, version, canonical_digest, "missing", action="create"), block.encode("utf-8") + os.linesep.encode("utf-8")
+    if not target.is_file():
+        result = _policy_result(target, version, canonical_digest, "conflict")
+        result["issues"].append({"kind": "not-file", "detail": "managed policy path must be a regular file"})
+        return result, None
+
+    raw = target.read_bytes()
+    has_bom = raw.startswith(b"\xef\xbb\xbf")
+    payload = raw[3:] if has_bom else raw
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError:
+        result = _policy_result(target, version, canonical_digest, "conflict")
+        result["issues"].append({"kind": "encoding", "detail": "AGENTS.md is not valid UTF-8"})
+        return result, None
+
+    begins = list(POLICY_BEGIN_RE.finditer(text))
+    ends = list(POLICY_END_RE.finditer(text))
+    reserved_begins = text.count(POLICY_BEGIN_PREFIX)
+    reserved_ends = text.count(POLICY_END_PREFIX)
+    newline = policy_line_ending(text)
+    block = rendered_policy_block(canonical_body, version, canonical_digest, newline)
+    prefix_bytes = b"\xef\xbb\xbf" if has_bom else b""
+    if reserved_begins != len(begins) or reserved_ends != len(ends):
+        result = _policy_result(target, version, canonical_digest, "conflict")
+        result["issues"].append({"kind": "markers", "detail": "managed policy marker metadata is invalid"})
+        return result, None
+    if not begins and not ends:
+        if normalized_policy_body(text) == canonical_body:
+            replacement = prefix_bytes + (block + newline).encode("utf-8")
+            action = "adopt-exact"
+        else:
+            boundary = "" if not text or text.endswith(("\n", "\r")) else newline
+            replacement = prefix_bytes + (text + boundary + block + newline).encode("utf-8")
+            action = "append"
+        return _policy_result(target, version, canonical_digest, "missing", action=action), replacement
+    if len(begins) != 1 or len(ends) != 1:
+        result = _policy_result(target, version, canonical_digest, "conflict")
+        result["issues"].append({"kind": "markers", "detail": "expected exactly one begin/end marker pair"})
+        return result, None
+
+    begin = begins[0]
+    end = ends[0]
+    body_start = begin.end()
+    if text.startswith("\r\n", body_start):
+        body_start += 2
+    elif body_start < len(text) and text[body_start] in "\r\n":
+        body_start += 1
+    else:
+        body_start = -1
+    if body_start < 0 or begin.start() >= end.start() or end.start() == 0:
+        result = _policy_result(target, version, canonical_digest, "conflict")
+        result["issues"].append({"kind": "markers", "detail": "managed policy markers are malformed or reversed"})
+        return result, None
+    body_raw = text[body_start:end.start()]
+    installed_body = normalized_policy_body(body_raw)
+    recorded_digest = begin.group("sha256").lower()
+    installed_digest = policy_body_sha256(body_raw)
+    installed_version = begin.group("version")
+    if not POLICY_SEMVER.fullmatch(installed_version):
+        result = _policy_result(target, version, canonical_digest, "conflict", installed_version=installed_version)
+        result["issues"].append({"kind": "version", "detail": "managed policy version is not valid SemVer"})
+        return result, None
+    if int(begin.group("format")) != POLICY_FORMAT:
+        result = _policy_result(target, version, canonical_digest, "conflict", installed_version=installed_version)
+        result["issues"].append({"kind": "format", "detail": "unsupported managed policy format"})
+        return result, None
+    if installed_digest != recorded_digest:
+        result = _policy_result(target, version, canonical_digest, "conflict", installed_version=installed_version)
+        result["issues"].append({"kind": "changed", "detail": "managed policy body differs from its installed receipt hash"})
+        return result, None
+    if installed_version == version and recorded_digest == canonical_digest and installed_body == canonical_body:
+        return _policy_result(target, version, canonical_digest, "current", installed_version=installed_version), None
+    replacement = prefix_bytes + (text[:begin.start()] + block + text[end.end():]).encode("utf-8")
+    result = _policy_result(target, version, canonical_digest, "stale", installed_version=installed_version, action="replace")
+    result["issues"].append({"kind": "version-or-content", "detail": "installed managed policy differs from selected package"})
+    return result, replacement
+
+
+def write_consumer_policy(path: Path, content: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        desired_mode = stat.S_IMODE(path.stat().st_mode)
+    else:
+        current_umask = os.umask(0)
+        os.umask(current_umask)
+        desired_mode = 0o666 & ~current_umask
+    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(content)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.chmod(temporary, desired_mode)
+        temporary.replace(path)
+    except BaseException:
+        temporary.unlink(missing_ok=True)
+        raise
 
 
 def paths_overlap(first: Path, second: Path) -> bool:
