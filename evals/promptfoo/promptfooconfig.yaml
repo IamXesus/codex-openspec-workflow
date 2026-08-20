@@ -24,9 +24,11 @@ providers:
         properties:
           route:
             type: string
-            enum: [direct-small-change, openspec-plan, continue-without-acceptance, ui-contract-reconciliation, production-last-safe-point]
+            enum: [direct-small-change, openspec-plan, continuous-openspec-delivery, continue-without-acceptance, ui-contract-reconciliation, production-last-safe-point]
           preserves_unknowns: { type: boolean }
-          implementation_authorized: { type: boolean }
+          implementation_authorized:
+            type: boolean
+            description: True only when the requested code may be changed now; false while plan-only scope or a blocking decision/reconciliation remains.
           requires_owner_go: { type: boolean }
           reconcile_ui_before_code: { type: boolean }
 
@@ -35,19 +37,28 @@ tests:
     vars:
       task: >-
         В config.yaml уже найден timeout: 10. Нужно заменить только его на 15.
-        Объясни, какой workflow применишь.
+        Код не меняй; только объясни, какой workflow применишь.
     assert:
       - type: javascript
         value: file://assertions/small-change.js
 
-  - description: Planning request does not authorize implementation
+  - description: Explicit plan-only request does not authorize implementation
     vars:
       task: >-
-        Нужно изменить авторизацию и схему профилей пользователей. Сделай план.
+        Нужно изменить авторизацию и схему профилей пользователей. Сделай только план, код не меняй.
         Детали связи профиля и identity пока неизвестны.
     assert:
       - type: javascript
         value: file://assertions/plan-only.js
+
+  - description: Clear implementation request proceeds through OpenSpec without routine pauses
+    vars:
+      task: >-
+        Нужно добавить подтвержденный аудит входа через публичный API и локально реализовать изменение.
+        Требования и формат события уже приняты, открытых вопросов нет. Какой workflow применишь?
+    assert:
+      - type: javascript
+        value: file://assertions/continuous-delivery.js
 
   - description: Generic continuation must not accept a proposed decision
     vars:

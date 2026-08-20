@@ -29,23 +29,24 @@ In commands below, `<openspec>` is a documentation placeholder for that selected
 Do not select a phase from the user's exact wording. Resolve the active change and run `<openspec> status --change <name> --json`; its first ready artifact is the next planning step.
 Native status controls artifact order only. `isPlanningComplete` means files exist; it is not semantic approval and must never by itself trigger a ready-to-apply message.
 
-- A new planning request such as "сделай план" starts the official stepwise path: select the schema by the routing rules above, then run `<openspec> new change "<name>" --schema <selected-schema>`. Never use `openspec-propose` or fast-forward.
+- A clear software-change request that requires OpenSpec starts the official continuous path: select the schema by the routing rules above, then run `<openspec> new change "<name>" --schema <selected-schema>`. Never use `openspec-propose` or fast-forward.
 - If the intent is materially unclear, use `openspec-explore` first. Explore creates no artifacts and does not invent the missing decision.
-- On an active change, ordinary continuation such as "ок", "делай", "дальше", or "продолжай" means `openspec-continue-change`: create exactly one ready artifact and stop.
-- Continuation authorizes the next artifact only. It does not change a `proposed` decision to `accepted` and does not answer an open `Q-*` item.
-- After creating an artifact, summarize its new requirements and decisions. Keep them `proposed` until the user clearly approves that content; a generic continuation advances state but is not approval.
+- Drive the official `<openspec> status` and `<openspec> instructions` loop directly through every ready planning artifact in schema order. After each artifact, run its required gates; when they pass and no user-owned decision is pending, continue without asking for routine confirmation.
+- A clear request to implement or change software carries local authority through planning, apply, verification, and required reviews. An explicit plan-only, review-only, diagnosis-only, or other narrower request remains limited to that scope and stops before implementation.
+- Ordinary continuation such as "ок", "делай", "дальше", or "продолжай" resumes the same continuous flow. It does not change a `proposed` decision to `accepted` and does not answer an open `Q-*` item.
+- Summarize material requirements and decisions at natural checkpoints or in the final handoff without yielding merely because an artifact or passing gate completed. Keep unsupported decisions `proposed` until the user clearly approves them.
 - Corrections use `openspec-update-change` and stay within the same artifact unless the intent itself changed.
-- Implementation requires a separate clear apply/build request after planning validation. A planning request never carries authority into apply.
+- Pause only when progress requires a user-owned clarification, decision, authorization, scope change, or disposition that cannot be derived from accepted authority and inspected evidence. External effects retain their separate GO boundary.
 
 ## Start Or Continue A Change
 
 - Work inside the target repository. Never use a shared workspace folder for a single-project change.
-- If the repository has no `openspec/` setup and the user explicitly requested a software plan/spec or the accepted implementation requires one, initialize it with `<openspec> init <repo> --tools codex --no-animation --no-copilot-cloud`. Do not force the `core` profile; use the configured stepwise profile.
+- If the repository has no `openspec/` setup and the user explicitly requested a software plan/spec or the accepted implementation requires one, initialize it with `<openspec> init <repo> --tools codex --no-animation --no-copilot-cloud`. Do not force the `core` profile; use the configured evidence profile.
 - After initialization, set the repository's `openspec/config.yaml` default `schema` to `evidence-core`; select `evidence-heavy` explicitly for heavy changes.
-- Create changes through the official CLI with `<openspec> new change "<name>" --schema evidence-core` or `--schema evidence-heavy`; advance through `openspec-continue-change` one artifact at a time. Do not delegate schema selection to the generated `openspec-new-change` default-only rule.
+- Create changes through the official CLI with `<openspec> new change "<name>" --schema evidence-core` or `--schema evidence-heavy`; advance by repeatedly following official status and artifact instructions. Do not delegate an end-to-end request to generated single-step skills or their default-only schema rule; an explicitly requested single-step helper remains bounded to that request.
 - Follow `<openspec> status --change <change-name> --json` and `<openspec> instructions <artifact> --change <change-name> --json`; do not assume artifact paths or readiness.
 - Keep stock OpenSpec current-state specs under `openspec/specs/` and proposed deltas under `openspec/changes/`.
-- Do not use `openspec-propose` or `openspec-ff-change`; they bypass the required one-artifact review rhythm.
+- Do not use `openspec-propose` or `openspec-ff-change`; continuous execution still creates and validates every required artifact in official dependency order.
 
 ## Evidence And Acceptance Gate
 
@@ -64,9 +65,9 @@ Read [references/requirement-contract.md](references/requirement-contract.md) be
 - The command runs both native strict validation and the deterministic evidence validator. Do not replace it with `openspec validate`, combine it with mutation commands, or infer success from native status.
 - A zero exit from that exact current-artifact gate is required before tasks or implementation. After any artifact edit, earlier gate evidence is stale.
 - After the deterministic gate passes, perform the read-only semantic entailment review; reference validity cannot prove that the cited evidence supports the entire requirement.
-- Treat either failure as a contract failure, not as permission to fill gaps.
+- Treat either failure as a contract failure, not as permission to fill gaps. Diagnose and repair an unambiguous in-scope agent-authored artifact failure, rerun the gate, and continue after it passes. Pause only when a safe correction requires user authority or a material decision, or the blocker cannot be resolved in scope.
 - Under review contract v3, give every accepted requirement a stable `REQ-*` id and put an inline `openspec-trace` marker on each implementation task with exact requirement ids and concrete planned verification. The validator prints the read-only requirement → accepted decision when cited → task → planned verification matrix. Do not create a separate traceability file. Before apply, fail closed if any accepted requirement has no traced implementation task or planned verification. For explicit `skip_specs: true`, tasks use `requirements=none` and still require concrete planned verification.
-- If native status says complete but either gate fails, report the change as blocked and list only the unsupported requirements, decisions, or questions. Do not suggest apply.
+- If native status says complete but either gate still fails after safe in-scope repair, report the change as blocked and list only the unsupported requirements, decisions, or questions. Do not suggest apply.
 
 ## Architecture Growth Gate
 
@@ -114,7 +115,7 @@ Do not review every edited file or completed checkbox. Review coherent implement
 
 - For `evidence-core`, implement and verify the bounded change, then run one independent read-only review before marking the change complete or handing it off.
 - For `evidence-heavy`, group `tasks.md` under a small number of semantic waves using ordinary Markdown headings. A wave is a coherent behavior or contract boundary, not an arbitrary task count. Typical boundaries include data/migration, auth or public API, integration between components, and user-facing completion; include only boundaries that exist in the accepted change.
-- End a heavy wave when its accepted scenarios are implemented and its targeted checks have run, or before another wave depends on its contract. Then stop for an independent read-only review before continuing.
+- End a heavy wave when its accepted scenarios are implemented and its targeted checks have run, or before another wave depends on its contract. Dispatch and await the independent read-only review automatically; continue to the next wave after a passing review and any blocking findings are resolved, without asking for routine confirmation.
 - Always run a final full-diff release review after the last heavy wave and before any deploy or other external effect. The last wave review may satisfy this final gate only when it covered the full pending diff; any later material diff makes the review stale.
 - Give the reviewer the base commit, current HEAD/worktree state, complete changed-file inventory, accepted requirement ids, completed waves, test evidence, and known limits. The reviewer must inspect the current diff, accepted requirements, affected contracts, negative/error paths, cross-wave interactions, and whether tests prove the claimed behavior. Tests and OpenSpec validation do not replace this review.
 - Require the reviewer to state `Coverage: full pending diff` or `Coverage: partial`, list checked requirements, and name exclusions. A partial review cannot satisfy the final gate.

@@ -19,9 +19,15 @@ Consumer repositories inherit the reusable package, but remain authoritative for
 - OpenSpec CLI 1.8.x installed separately from this package. POSIX/Linux requires `openspec`; Windows uses `openspec.cmd`, or `openspec` when the active shell resolves the installed launcher through PATHEXT.
 - Codex, Orca, Omnigent, or another host that supports the Agent Skills specification.
 
+## Continuous execution contract
+
+A clear software-change request that routes through OpenSpec proceeds by default through every required planning artifact, local implementation, verification, and required independent reviews. Passing artifacts, gates, and review checkpoints do not require routine user confirmation. The agent pauses only when it needs a user-owned clarification, decision, authorization, scope change, or unresolved finding disposition. Explicit plan-only, review-only, and other narrower requests remain bounded to their requested phase, and push, release, deploy, installation, persistent-data mutation, and other external effects retain their separate GO boundary.
+
+The canonical controller drives the official OpenSpec `status` and `instructions` loop directly; it does not skip artifacts or fork the CLI-generated single-step skills. A proposed decision or open question still blocks downstream work until accepted authority exists.
+
 ## Version and update contract
 
-`package.json` is the single version source. The current package is `1.1.1`; `package-lock.json` must match it. Shared-root receipts record that SemVer and hashes for every package-owned skill and schema file. When a consumer is selected, the managed `AGENTS.md` block carries its own per-consumer policy receipt with the workflow version and normalized policy hash. `check` reports:
+`package.json` is the single version source. The current package is `1.2.0`; `package-lock.json` must match it. Shared-root receipts record that SemVer and hashes for every package-owned skill and schema file. When a consumer is selected, the managed `AGENTS.md` block carries its own per-consumer policy receipt with the workflow version and normalized policy hash. `check` reports:
 
 - `current` when shared roots, selected consumer policy, and canonical project-bootstrap structure are current (the separately reported semantic audit may still be pending);
 - `stale` for safe-to-update shared version/content drift, consumer schema shadowing, or an existing project config/audit that needs manual reconciliation;
@@ -35,13 +41,13 @@ The package never pulls Git. Update the central checkout by your normal Git work
 Preview the first Orca installation. Initial adoption requires a dedicated empty backup root, even in dry-run examples so the exact command can be promoted safely:
 
 ```powershell
-.\scripts\install.ps1 -Target orca -ConsumerRepo C:\projects\consumer -BackupRoot C:\workflow-backups\openspec-1.1.1 -DryRun -Json
+.\scripts\install.ps1 -Target orca -ConsumerRepo C:\projects\consumer -BackupRoot C:\workflow-backups\openspec-1.2.0 -DryRun -Json
 ```
 
 Install after the preview and the required owner approval for the persistent shared-profile write:
 
 ```powershell
-.\scripts\install.ps1 -Target orca -ConsumerRepo C:\projects\consumer -BackupRoot C:\workflow-backups\openspec-1.1.1
+.\scripts\install.ps1 -Target orca -ConsumerRepo C:\projects\consumer -BackupRoot C:\workflow-backups\openspec-1.2.0
 ```
 
 Check the installed package and resolve effective schemas in a consumer without editing it:
@@ -55,8 +61,8 @@ For Codex or Omnigent, replace `orca` with `codex` or `omnigent`. Codex honors `
 ## Install on POSIX
 
 ```sh
-./scripts/install.sh install --target orca --consumer-repo /path/to/consumer --backup-root "$HOME/workflow-backups/openspec-1.1.1" --dry-run --json
-./scripts/install.sh install --target orca --consumer-repo /path/to/consumer --backup-root "$HOME/workflow-backups/openspec-1.1.1"
+./scripts/install.sh install --target orca --consumer-repo /path/to/consumer --backup-root "$HOME/workflow-backups/openspec-1.2.0" --dry-run --json
+./scripts/install.sh install --target orca --consumer-repo /path/to/consumer --backup-root "$HOME/workflow-backups/openspec-1.2.0"
 ./scripts/install.sh check --target orca --consumer-repo /path/to/consumer --json
 ```
 
