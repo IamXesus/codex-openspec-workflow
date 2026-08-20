@@ -2,6 +2,14 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $env:PYTHONUTF8 = '1'
 
+Push-Location (Join-Path $repoRoot 'scripts')
+try {
+    python -m unittest -v test_workflow_package.py test_shared_policy.py
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+} finally {
+    Pop-Location
+}
+
 $skillValidator = Join-Path $env:USERPROFILE '.codex\skills\.system\skill-creator\scripts\quick_validate.py'
 if (Test-Path -LiteralPath $skillValidator) {
     foreach ($skill in 'openspec-workflow', 'code-reviewer', 'webapp-testing', 'coding-guardrails', 'architecture-review') {
@@ -58,6 +66,14 @@ foreach ($file in $textFiles) {
             throw "Forbidden portable-package content '$pattern' in $($file.FullName)"
         }
     }
+}
+
+Push-Location (Join-Path $repoRoot 'scripts')
+try {
+    python -c "import workflow_package as package; package.validate_lock_metadata(package.repo_root())"
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+} finally {
+    Pop-Location
 }
 
 Write-Output 'Portable workflow validation: PASS'

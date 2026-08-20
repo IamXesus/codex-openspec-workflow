@@ -78,7 +78,14 @@ artifacts:
       Derive every task from accepted requirements and recorded design decisions. Preserve contract v3
       and put one `openspec-trace` marker with exact REQ ids and concrete planned verification on each
       implementation checkbox. For explicit `skip_specs: true`, use `requirements=none` while still recording concrete planned verification. The validator prints the read-only requirement-to-decision-to-task-to-verification
-      matrix; do not create another artifact. Group tasks
+      matrix; do not create another artifact.
+      For work that creates or materially moves a production type, derive a placement task or
+      verification that inspects neighboring feature structure, namespaces or module boundaries,
+      dependency registration, and relevant architecture tests. Plan placement by feature and
+      cohesive responsibility; do not require generic Interfaces/Implementations buckets solely
+      by declaration type or incidental legacy reorganization. A material ownership restructure
+      belongs in accepted evidence-heavy scope with architecture review. Concrete examples remain
+      authoritative in the consumer repository. Group tasks
       under a small number of semantic implementation waves, not arbitrary task counts. Mark every
       wave heading with a unique `<!-- openspec-wave:<id> -->`. End each
       wave with a review-checkpoint checkbox after its targeted verification; place a checkpoint
@@ -117,7 +124,14 @@ apply:
     fetch upstream read-only, and record branch/HEAD/upstream, upstream HEAD, dirty baseline, and
     divergence. Reconcile referenced old commits as evidence/artifacts, never an automatic
     implementation base. After a pass,
-    then implement one semantic wave at a time and capture layer-appropriate evidence. At each wave checkpoint, run targeted checks and an independent
+    before creating or materially moving a production type, inspect neighboring feature structure,
+    namespaces or module boundaries, dependency registration, and relevant architecture tests.
+    Place code by feature and cohesive responsibility; use responsibility-named subfolders only
+    when they materially improve navigation, never generic Interfaces/Implementations buckets
+    solely by declaration type. Do not reorganize adjacent legacy code incidentally. A material
+    ownership, namespace, or registration restructure requires accepted evidence-heavy scope and
+    architecture review; consumer-specific examples remain local authority. Then implement one
+    semantic wave at a time and capture layer-appropriate evidence. At each wave checkpoint, run targeted checks and an independent
     read-only review before dependent work. A validated High finding blocks the next wave;
     resolve a validated Medium finding or obtain explicit user disposition. Re-review affected
     findings after fixes. Run the final full-diff review before release; the last wave review may

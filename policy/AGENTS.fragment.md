@@ -17,6 +17,21 @@
 - For material impact, record component ownership and transaction boundaries in design, then require an independent `$architecture-review` and the bundled fail-closed architecture validator before tasks and production edits. Existing large components do not authorize unrelated cleanup or new unowned responsibilities.
 - Review coherent heavy implementation waves and run one final full-diff review before release. Do not equate artifact existence, checked tasks, green tests, release readiness, and deployment.
 
+## Shared Code Placement
+
+- Before creating or materially moving a production type, inspect neighboring feature structure, namespaces or module boundaries, dependency registration, and relevant architecture tests.
+- Organize new or materially changed code by feature and cohesive responsibility. A small cohesive feature root may remain flat; add a responsibility-named subfolder only when it materially improves navigation.
+- Do not introduce generic `Interfaces` and `Implementations` folders solely by declaration type. Keep an internal contract with the cohesive boundary it serves.
+- Treat this as a narrow ratchet: do not move neighboring legacy files, churn namespaces or registrations, or add speculative wrappers incidentally.
+- Route a material ownership restructure through accepted `evidence-heavy` scope and architecture review.
+- Consumer repositories remain authoritative for concrete feature names, namespaces, dependency-registration rules, architecture tests, and placement examples. Keep reusable guidance general.
+
+## Shared Workflow Ownership
+
+- Treat the installed central package as upstream for reusable schemas and templates, validators, skills, routing and lifecycle gates, and general authoring policy. A copied consumer asset is not an upstream source.
+- Keep each consumer repository authoritative for its OpenSpec context, business and technical documentation, navigation, deployment convention, and domain-specific examples. Project-local schemas may intentionally shadow shared schemas and require explicit reconciliation; never overwrite or remove them implicitly.
+- A freshness check is read-only. Installing the reusable package does not edit consumer repositories, merge this policy fragment, pull Git, publish a release, or authorize any external effect.
+
 ## Material UI
 
 - Treat an accepted visual artifact as a testable contract. Record its authority, theme, viewports, states, and representative data grounded in inspected product/API evidence.

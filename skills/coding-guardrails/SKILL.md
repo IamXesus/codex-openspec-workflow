@@ -23,6 +23,18 @@ Answer in the user's language. For Russian requests, report assumptions, changed
 8. For OpenSpec work, map verification to its scenarios and report passed, failed, deferred, and not-run facts without inventing a separate evidence document.
 9. State what was verified and what remains unverified.
 
+## Code Placement Gate
+
+Before creating or materially moving a production type, inspect the neighboring feature structure, namespaces or module boundaries, dependency registration, and relevant architecture tests. Organize new or materially changed code by feature and cohesive responsibility, following the repository's actual local pattern.
+
+- Keep a small cohesive feature root flat when that remains easiest to navigate.
+- Add a subfolder only when it names a real responsibility or boundary, such as commands, models, adapters, storage, or processing, and materially improves navigation.
+- Do not introduce generic `Interfaces` and `Implementations` folders solely to separate declaration types; keep an internal contract with the cohesive boundary it serves.
+- Apply this as a narrow ratchet. Do not move neighboring legacy files, churn namespaces or registrations, or add speculative wrappers incidentally while satisfying the placement rule.
+- Route a material ownership restructure through an accepted `evidence-heavy` change and architecture review.
+
+Consumer repositories remain authoritative for their concrete feature names, namespaces, dependency-registration rules, and architecture-test examples. Combine those local rules with this general guardrail; do not promote project-specific examples into the reusable package.
+
 ## Existing-First Gate
 
 Before building custom code, check:
