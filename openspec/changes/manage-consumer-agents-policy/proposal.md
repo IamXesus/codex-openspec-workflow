@@ -6,6 +6,7 @@ The shared package currently installs skills and schemas but leaves its reusable
 
 - USER-001: The owner identified the missing-file behavior as a package gap and explicitly required the installer to create `AGENTS.md` when it does not exist.
 - USER-002: The owner explicitly authorized implementation after the proposed behavior was stated: create a missing file, preserve existing user content, update only a managed block, fail closed on a user-modified managed block, expose policy state, and version the installed policy.
+- USER-003: Before publication, the owner explicitly required checking the existing Pyrus consumer and ensuring its current agent instructions would be adopted correctly rather than duplicated.
 - FACT-001: At the inspected baseline `main` and `origin/main` both resolve to `ef751c09397de2303e0d9c4749bf94efbba37e03`; the worktree was clean before this change.
 - FACT-002: `policy/AGENTS.fragment.md` is the canonical portable policy, but `scripts/workflow_package.py` currently reports `manual_review_required` and never edits a consumer repository.
 - FACT-003: `--consumer-repo` already selects a consumer for read-only schema resolution, while shared skills and schemas use package-owned receipt and hash checks.
@@ -20,6 +21,7 @@ The shared package currently installs skills and schemas but leaves its reusable
 - Detect malformed, duplicated, or locally modified managed blocks as a conflict and fail before any install mutation.
 - Report consumer policy state as `current`, `missing`, `stale`, or `conflict`; include the same selected consumer in the remediation command.
 - Update documentation, wrappers, tests, and package version for the changed installation contract.
+- Upgrade an exact known unmarked `1.0.0` portable-policy copy to the current managed block without appending a duplicate.
 
 ## Capabilities
 

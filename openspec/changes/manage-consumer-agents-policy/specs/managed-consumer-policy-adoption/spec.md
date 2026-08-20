@@ -7,7 +7,7 @@ Make the canonical reusable agent policy a safe, versioned part of explicit cons
 ### Requirement: Explicit consumer policy adoption
 **ID:** REQ-MPA-001
 **Status:** accepted
-**Source:** decision:DEC-001, decision:DEC-002
+**Source:** decision:DEC-001, decision:DEC-002, user:USER-003
 When install is invoked with an explicit consumer repository, the package SHALL ensure that the consumer `AGENTS.md` contains exactly one package-managed policy block. It SHALL create the file when absent, append the block when the file contains only consumer-owned text, and preserve all text outside the managed block. Without an explicit consumer repository, install MUST NOT select or edit any consumer `AGENTS.md`.
 
 #### Scenario: Consumer has no AGENTS file
@@ -21,6 +21,10 @@ When install is invoked with an explicit consumer repository, the package SHALL 
 #### Scenario: Consumer already contains exactly the portable policy
 - **WHEN** the whole unmarked `AGENTS.md` body equals the canonical portable policy after newline normalization
 - **THEN** the installer adds managed receipt markers around that body without appending a duplicate policy copy
+
+#### Scenario: Consumer contains the known unmarked 1.0.0 portable policy
+- **WHEN** the whole unmarked `AGENTS.md` body matches the recorded `1.0.0` portable-policy hash apart from terminal blank lines
+- **THEN** the installer replaces it with one current managed policy block without retaining or appending a duplicate legacy copy
 
 #### Scenario: No consumer is selected
 - **WHEN** install is invoked without `--consumer-repo`

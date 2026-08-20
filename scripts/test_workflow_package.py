@@ -247,6 +247,29 @@ class WorkflowPackageTests(unittest.TestCase):
         self.assertEqual(1, installed.count("## Evidence, Scope, And Authority"))
         self.assertEqual(1, installed.count("codex-openspec-workflow-policy:begin"))
 
+    def test_known_legacy_unmarked_fragment_is_upgraded_without_duplication(self) -> None:
+        current = (self.root / "policy" / "AGENTS.fragment.md").read_text(encoding="utf-8")
+        current_sentence = (
+            "- A freshness check is read-only. An install with an explicit consumer repository may create `AGENTS.md` "
+            "or update only the intact centrally managed policy block; it never owns surrounding consumer instructions. "
+            "Installation does not pull Git, publish a release, or authorize any external effect."
+        )
+        legacy_sentence = (
+            "- A freshness check is read-only. Installing the reusable package does not edit consumer repositories, "
+            "merge this policy fragment, pull Git, publish a release, or authorize any external effect."
+        )
+        legacy = current.replace(current_sentence, legacy_sentence).rstrip("\r\n") + "\n"
+        agents = self.consumer / "AGENTS.md"
+        agents.write_text(legacy, encoding="utf-8")
+        package.install(
+            self.args(consumer_repo=str(self.consumer)), self.root, self.version, self.roots,
+        )
+        installed = agents.read_text(encoding="utf-8")
+        self.assertEqual(1, installed.count("## Evidence, Scope, And Authority"))
+        self.assertEqual(1, installed.count("codex-openspec-workflow-policy:begin"))
+        self.assertIn(current_sentence, installed)
+        self.assertNotIn(legacy_sentence, installed)
+
     def test_stale_policy_replaces_only_managed_block_and_retains_consumer_in_update(self) -> None:
         agents = self.consumer / "AGENTS.md"
         agents.write_text("# Local\n", encoding="utf-8")

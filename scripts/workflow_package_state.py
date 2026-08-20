@@ -34,6 +34,9 @@ POLICY_SEMVER = re.compile(
     r"(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
     r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$"
 )
+LEGACY_UNMANAGED_POLICY_HASHES = {
+    "51abbf683aaa37003b191a9b90ee7d2cf575551594629913eab3cb2b2fe519f7": "1.0.0",
+}
 
 
 class PackageError(RuntimeError):
@@ -57,6 +60,11 @@ def normalized_policy_body(text: str) -> str:
 
 def policy_body_sha256(text: str) -> str:
     return hashlib.sha256(normalized_policy_body(text).encode("utf-8")).hexdigest()
+
+
+def legacy_unmanaged_policy_version(text: str) -> str | None:
+    digest = hashlib.sha256(normalized_policy_body(text).rstrip("\n").encode("utf-8")).hexdigest()
+    return LEGACY_UNMANAGED_POLICY_HASHES.get(digest)
 
 
 def policy_source(path: Path) -> tuple[str, str]:
@@ -141,14 +149,21 @@ def plan_consumer_policy(
         result["issues"].append({"kind": "markers", "detail": "managed policy marker metadata is invalid"})
         return result, None
     if not begins and not ends:
+        legacy_version = None
         if normalized_policy_body(text) == canonical_body:
             replacement = prefix_bytes + (block + newline).encode("utf-8")
             action = "adopt-exact"
+        elif legacy_version := legacy_unmanaged_policy_version(text):
+            replacement = prefix_bytes + (block + newline).encode("utf-8")
+            action = "adopt-legacy"
         else:
             boundary = "" if not text or text.endswith(("\n", "\r")) else newline
             replacement = prefix_bytes + (text + boundary + block + newline).encode("utf-8")
             action = "append"
-        return _policy_result(target, version, canonical_digest, "missing", action=action), replacement
+        return _policy_result(
+            target, version, canonical_digest, "missing", action=action,
+            installed_version=legacy_version,
+        ), replacement
     if len(begins) != 1 or len(ends) != 1:
         result = _policy_result(target, version, canonical_digest, "conflict")
         result["issues"].append({"kind": "markers", "detail": "expected exactly one begin/end marker pair"})

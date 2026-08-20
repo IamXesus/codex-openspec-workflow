@@ -30,7 +30,7 @@ The managed block uses exact begin/end HTML comments. The begin marker contains 
 
 State parsing happens before install mutates either shared root. Exactly zero markers means `missing`. Exactly one valid pair with a body matching its recorded installed hash is `current` when version and canonical hash match, otherwise `stale`. Partial, reversed, nested, duplicated, invalid-metadata, unreadable-UTF-8, or installed-body-hash mismatch states are `conflict`.
 
-An existing file that is exactly the canonical unmarked fragment after newline normalization is adopted by adding markers around that body rather than appending a duplicate. Other unmarked consumer content receives one appended managed block. This exact-match migration supports the already inspected manually adopted Pyrus file without fuzzy ownership inference.
+An existing file that is exactly the canonical unmarked fragment after newline normalization is adopted by adding markers around that body rather than appending a duplicate. The package also records the normalized whole-file hash of the known `1.0.0` fragment and upgrades only that exact legacy body, allowing differences solely in terminal blank lines. Other unmarked consumer content receives one appended managed block. This hash-bound migration supports the inspected manually adopted Pyrus file without fuzzy ownership inference.
 
 Install writes a sibling temporary file and replaces the target only after shared asset copies and receipts have succeeded. A conflict is detected before those writes. A current block is not rewritten. Check remains read-only. The remediation argv retains `--consumer-repo` for `missing` and `stale`; conflict emits reconciliation guidance rather than an automatic overwrite command.
 
@@ -40,7 +40,7 @@ Install writes a sibling temporary file and replaces the target only after share
 
 **Inspected baseline:** `scripts/workflow_package.py` at 352 lines; `scripts/workflow_package_state.py` at 275 lines; `scripts/test_workflow_package.py` at 371 lines; `policy/AGENTS.fragment.md` at 41 lines.
 
-**Expected growth:** implementation evidence is +52/-12 lines in `workflow_package.py` and +184 lines in `workflow_package_state.py`; the latter is the accepted 180-190 line envelope for the bounded parser, renderer, conflict-state model, newline/BOM preservation, mode preservation, and atomic writer. Tests add +308/-3 lines, including the isolated subprocess lifecycle rehearsal. No production file reaches the roughly 250-line single-file growth trigger.
+**Expected growth:** implementation evidence is +52/-12 lines in `workflow_package.py` and +199 lines in `workflow_package_state.py`; the latter is the reconciled 195-205 line envelope for the bounded parser, renderer, conflict-state model, exact legacy-hash adoption, newline/BOM preservation, mode preservation, and atomic writer. Tests add +331/-3 lines, including the isolated subprocess lifecycle rehearsal and known legacy migration case. No production file reaches the roughly 250-line single-file growth trigger.
 
 **Existing responsibilities:** `workflow_package.py` owns CLI parsing, root selection, install/check/rollback ordering, result aggregation, and human/JSON output. `workflow_package_state.py` owns containment, manifests, hashes, receipts, backup validation, and filesystem-state checks.
 
@@ -54,7 +54,7 @@ Install writes a sibling temporary file and replaces the target only after share
 
 The existing `workflow_package_state.py` receives narrow policy-state helpers because parsing, normalized hashing, containment, and safe file replacement are filesystem trust-boundary mechanics. `workflow_package.py` retains selection, ordering, aggregation, and CLI behavior. No third production module or generic abstraction is introduced.
 
-**Known cost:** the state helper grows from 275 to 459 lines and its name remains broader than receipts/manifests, but the new behavior stays beside existing file-integrity code, remains covered through its public state/install contract, and avoids increasing the public engine with parsing details or adding a third module.
+**Known cost:** the state helper grows from 275 to 474 lines and its name remains broader than receipts/manifests, but the new behavior stays beside existing file-integrity code, remains covered through its public state/install contract, and avoids increasing the public engine with parsing details or adding a third module.
 
 **Ratchet scope:** change only the consumer policy path required by REQ-MPA-001 through REQ-MPA-004; do not refactor shared-root receipts, backup format, schema resolution, or wrapper architecture.
 
