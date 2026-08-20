@@ -107,10 +107,32 @@ class SharedPlacementPolicyTests(unittest.TestCase):
         ):
             self.assertIn(concept, combined, f"shared ownership boundary lacks {concept!r}")
 
+    def test_managed_policy_requires_host_neutral_project_audit_and_maintenance(self) -> None:
+        text = normalized("policy/AGENTS.fragment.md")
+        for concept in (
+            "project knowledge bootstrap",
+            "docs/project handoff",
+            "openspec/config.yaml",
+            "status=pending",
+            "before substantial implementation",
+            "confirmed facts",
+            "open questions",
+            "business processes",
+            "integrations",
+            "technical architecture",
+            "open issues",
+            "normative openspec",
+            "host neutral",
+            "codex",
+            "orca",
+            "omnigent",
+        ):
+            self.assertIn(concept, text, f"managed project-knowledge policy lacks {concept!r}")
+
     def test_readme_matches_distribution_contract(self) -> None:
         text = normalized("README.md")
         for concept in (
-            "1.0.1",
+            "1.1.0",
             "single version source",
             "current",
             "stale",
@@ -174,7 +196,7 @@ class SharedPlacementPolicyTests(unittest.TestCase):
             *source_manifest(ROOT, "openspec-schemas"),
         }
         self.assertFalse(any("agents.fragment" in path.lower() for path in installed_paths))
-        self.assertEqual("1.0.1", package.load_version(ROOT))
+        self.assertEqual("1.1.0", package.load_version(ROOT))
 
 
 if __name__ == "__main__":

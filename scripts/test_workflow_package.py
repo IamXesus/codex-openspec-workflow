@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
 import os
 import shutil
@@ -38,7 +40,7 @@ class WorkflowPackageTests(unittest.TestCase):
         return argparse.Namespace(**values)
 
     def test_version_metadata_is_single_valid_source(self) -> None:
-        self.assertEqual("1.0.1", self.version)
+        self.assertEqual("1.1.0", self.version)
         package.validate_lock_metadata(self.root)
         metadata_root = self.temp / "metadata"
         metadata_root.mkdir()
@@ -223,6 +225,133 @@ class WorkflowPackageTests(unittest.TestCase):
     def test_install_without_consumer_does_not_select_agents_file(self) -> None:
         package.install(self.args(), self.root, self.version, self.roots)
         self.assertFalse((self.consumer / "AGENTS.md").exists())
+        self.assertFalse((self.consumer / "docs/project-handoff").exists())
+        self.assertFalse((self.consumer / "openspec/config.yaml").exists())
+
+    def test_consumer_install_creates_project_scaffold_and_current_rerun_preserves_bytes(self) -> None:
+        installed = package.install(
+            self.args(consumer_repo=str(self.consumer)), self.root, self.version, self.roots,
+        )
+        self.assertEqual("current", installed["status"])
+        self.assertEqual("current", installed["project"]["status"])
+        self.assertEqual("pending", installed["project"]["audit_status"])
+        paths = installed["project"]["canonical_paths"]
+        before = {path: (self.consumer / path).read_bytes() for path in paths}
+
+        package.install(
+            self.args(consumer_repo=str(self.consumer), backup_root=None), self.root, self.version, self.roots,
+        )
+        after = {path: (self.consumer / path).read_bytes() for path in paths}
+        self.assertEqual(before, after)
+
+    def test_project_check_is_read_only_and_remediation_retains_consumer(self) -> None:
+        package.install(self.args(), self.root, self.version, self.roots)
+        before = list(self.consumer.rglob("*"))
+        resolution = {"repo": str(self.consumer), "schemas": [], "current": True}
+        with mock.patch("workflow_package.consumer_resolution", return_value=resolution):
+            checked = package.check(
+                self.args(consumer_repo=str(self.consumer), backup_root=None), self.root, self.version, self.roots,
+            )
+        self.assertEqual("missing", checked["status"])
+        self.assertEqual("missing", checked["project"]["status"])
+        self.assertEqual(before, list(self.consumer.rglob("*")))
+        self.assertIn("--consumer-repo", checked["update_argv"])
+        self.assertEqual(str(self.consumer.resolve()), checked["update_argv"][-1])
+
+    def test_consumer_dry_run_reports_project_paths_without_writes(self) -> None:
+        ready = package.install(
+            self.args(consumer_repo=str(self.consumer), dry_run=True), self.root, self.version, self.roots,
+        )
+        self.assertEqual("ready", ready["status"])
+        self.assertEqual("missing", ready["project"]["status"])
+        self.assertTrue(ready["project"]["prepared_paths"])
+        self.assertEqual([], list(self.consumer.rglob("*")))
+        self.assertFalse(self.agent.exists())
+        self.assertFalse(self.schemas.exists())
+
+    def test_project_conflict_blocks_before_shared_or_consumer_mutation(self) -> None:
+        outside = self.temp / "outside"
+        outside.mkdir()
+        try:
+            (self.consumer / "docs").symlink_to(outside, target_is_directory=True)
+        except OSError as exc:
+            self.skipTest(f"directory symlinks unavailable: {exc}")
+        with self.assertRaises(package.PackageError) as raised:
+            package.install(
+                self.args(consumer_repo=str(self.consumer)), self.root, self.version, self.roots,
+            )
+        self.assertEqual("conflict", raised.exception.details["project"]["status"])
+        self.assertFalse((self.agent / package.RECEIPT_NAME).exists())
+        self.assertFalse((self.schemas / package.RECEIPT_NAME).exists())
+        self.assertFalse((self.consumer / "AGENTS.md").exists())
+        self.assertEqual([], list(outside.rglob("*")))
+
+    def test_project_conflict_precedes_missing_and_check_is_read_only(self) -> None:
+        outside = self.temp / "outside-check"
+        outside.mkdir()
+        try:
+            (self.consumer / "docs").symlink_to(outside, target_is_directory=True)
+        except OSError as exc:
+            self.skipTest(f"directory symlinks unavailable: {exc}")
+        before = sorted(str(path.relative_to(self.temp)) for path in self.temp.rglob("*"))
+        checked = package.check(
+            self.args(consumer_repo=str(self.consumer), backup_root=None), self.root, self.version, self.roots,
+        )
+        after = sorted(str(path.relative_to(self.temp)) for path in self.temp.rglob("*"))
+        self.assertEqual("conflict", checked["status"])
+        self.assertEqual("conflict", checked["project"]["status"])
+        self.assertNotIn("update_argv", checked)
+        self.assertNotIn("consumer", checked)
+        self.assertEqual(before, after)
+
+    def test_human_output_surfaces_project_and_semantic_audit_state(self) -> None:
+        installed = package.install(
+            self.args(consumer_repo=str(self.consumer)), self.root, self.version, self.roots,
+        )
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            package.emit(installed, False)
+        rendered = output.getvalue()
+        self.assertIn("project bootstrap: current", rendered)
+        self.assertIn("semantic audit: pending", rendered)
+
+    def test_existing_noncanonical_config_is_preserved_and_reported_stale(self) -> None:
+        config = self.consumer / "openspec/config.yaml"
+        config.parent.mkdir(parents=True)
+        original = b"schema: evidence-core\r\ncontext: custom"
+        config.write_bytes(original)
+        installed = package.install(
+            self.args(consumer_repo=str(self.consumer)), self.root, self.version, self.roots,
+        )
+        self.assertEqual("stale", installed["status"])
+        self.assertEqual("stale", installed["project"]["status"])
+        self.assertEqual(original, config.read_bytes())
+        self.assertTrue((self.consumer / "docs/project-handoff/README.md").is_file())
+
+    def test_project_write_failure_is_resumable_after_shared_success(self) -> None:
+        real_write = package.write_project_bootstrap
+        _, initial_writes = package.plan_project_bootstrap(self.consumer, self.root)
+        initial_audit = next(
+            content for path, content in initial_writes.items()
+            if path.as_posix().endswith("docs/project-handoff/project-audit.md")
+        )
+
+        def write_one_then_fail(consumer: Path, writes: dict[Path, bytes]) -> None:
+            first = next(iter(writes.items()))
+            real_write(consumer, dict([first]))
+            raise OSError("simulated project write failure")
+
+        with mock.patch("workflow_package.write_project_bootstrap", side_effect=write_one_then_fail):
+            with self.assertRaises(OSError):
+                package.install(
+                    self.args(consumer_repo=str(self.consumer)), self.root, self.version, self.roots,
+                )
+        self.assertTrue((self.agent / package.RECEIPT_NAME).is_file())
+        resumed = package.install(
+            self.args(consumer_repo=str(self.consumer), backup_root=None), self.root, self.version, self.roots,
+        )
+        self.assertEqual("current", resumed["project"]["status"])
+        self.assertEqual(initial_audit, (self.consumer / "docs/project-handoff/project-audit.md").read_bytes())
 
     def test_existing_policy_prefix_and_newline_style_are_preserved(self) -> None:
         agents = self.consumer / "AGENTS.md"
@@ -249,6 +378,7 @@ class WorkflowPackageTests(unittest.TestCase):
 
     def test_known_legacy_unmarked_fragment_is_upgraded_without_duplication(self) -> None:
         current = (self.root / "policy" / "AGENTS.fragment.md").read_text(encoding="utf-8")
+        project_section = current[current.index("## Project Knowledge Bootstrap"):current.index("## Material UI")]
         current_sentence = (
             "- A freshness check is read-only. An install with an explicit consumer repository may create `AGENTS.md` "
             "or update only the intact centrally managed policy block; it never owns surrounding consumer instructions. "
@@ -258,7 +388,7 @@ class WorkflowPackageTests(unittest.TestCase):
             "- A freshness check is read-only. Installing the reusable package does not edit consumer repositories, "
             "merge this policy fragment, pull Git, publish a release, or authorize any external effect."
         )
-        legacy = current.replace(current_sentence, legacy_sentence).rstrip("\r\n") + "\n"
+        legacy = current.replace(project_section, "").replace(current_sentence, legacy_sentence).rstrip("\r\n") + "\n"
         agents = self.consumer / "AGENTS.md"
         agents.write_text(legacy, encoding="utf-8")
         package.install(
@@ -631,7 +761,7 @@ class WorkflowPackageTests(unittest.TestCase):
             consumer = self.temp / f"cli-{name}"
             schemas = consumer / "openspec" / "schemas"
             schemas.parent.mkdir(parents=True)
-            (schemas.parent / "config.yaml").write_text("schema: evidence-core\n", encoding="utf-8")
+            shutil.copy2(self.root / "project_templates" / "openspec-config.yaml", schemas.parent / "config.yaml")
             if initial is not None:
                 (consumer / "AGENTS.md").write_text(initial, encoding="utf-8")
             agent = self.temp / f"cli-agent-{name}"
@@ -679,6 +809,77 @@ class WorkflowPackageTests(unittest.TestCase):
             for path in self.temp.rglob("*") if path.is_file()
         }
         self.assertEqual(before, after)
+
+    @unittest.skipUnless(shutil.which("openspec.cmd") or shutil.which("openspec"), "OpenSpec CLI is required")
+    def test_cli_project_bootstrap_is_host_neutral_and_semantic_handoff_is_preserved(self) -> None:
+        script = str(self.root / "scripts" / "workflow_package.py")
+
+        def run(operation: str, target: str, consumer: Path, agent: Path, schemas: Path, backup: Path | None = None):
+            argv = [
+                sys.executable, script, operation, "--target", target,
+                "--agent-root", str(agent), "--schema-root", str(schemas),
+                "--consumer-repo", str(consumer), "--json",
+            ]
+            if backup is not None:
+                argv += ["--backup-root", str(backup)]
+            process = subprocess.run(
+                argv, cwd=self.root, text=True, encoding="utf-8", errors="replace",
+                capture_output=True, check=False,
+            )
+            return process, json.loads(process.stdout)
+
+        consumers: dict[tuple[str, str], tuple[Path, Path, Path]] = {}
+        for scenario in ("empty", "partial"):
+            rendered: dict[str, dict[str, bytes]] = {}
+            for target in ("codex", "orca", "omnigent"):
+                consumer = self.temp / f"portable-{scenario}-{target}"
+                consumer.mkdir()
+                if scenario == "partial":
+                    source = consumer / "src/app.txt"
+                    source.parent.mkdir()
+                    source.write_bytes(b"same existing source\r\n")
+                    business = consumer / "docs/project-handoff/business-processes.md"
+                    business.parent.mkdir(parents=True)
+                    business.write_bytes(b"same confirmed business evidence\n")
+                agent = self.temp / f"portable-agent-{scenario}-{target}"
+                schemas = consumer / "openspec/schemas"
+                backup = self.temp / f"portable-backup-{scenario}-{target}"
+                process, installed = run("install", target, consumer, agent, schemas, backup)
+                self.assertEqual(0, process.returncode, process.stderr or process.stdout)
+                self.assertEqual("current", installed["project"]["status"])
+                self.assertEqual("pending", installed["project"]["audit_status"])
+                files = {path.relative_to(consumer).as_posix(): path.read_bytes()
+                         for path in consumer.rglob("*") if path.is_file()}
+                self.assertEqual(1, files["AGENTS.md"].count(b"codex-openspec-workflow-policy:begin"))
+                rendered[target] = files
+
+                process, repeated = run("install", target, consumer, agent, schemas)
+                self.assertEqual(0, process.returncode, process.stderr or process.stdout)
+                self.assertEqual("current", repeated["project"]["status"])
+                self.assertEqual(files, {path.relative_to(consumer).as_posix(): path.read_bytes()
+                                         for path in consumer.rglob("*") if path.is_file()})
+                consumers[(scenario, target)] = (consumer, agent, schemas)
+            self.assertEqual(rendered["codex"], rendered["orca"])
+            self.assertEqual(rendered["codex"], rendered["omnigent"])
+
+        consumer, agent, schemas = consumers[("partial", "omnigent")]
+        audit = consumer / "docs/project-handoff/project-audit.md"
+        audit.write_text(
+            audit.read_text(encoding="utf-8").replace("status=pending", "status=complete", 1)
+            + "\nInspected evidence paths: src/app.txt and docs/project-handoff/business-processes.md. "
+            + "Git state: isolated fixture is not a Git repository. Unresolved facts remain open.\n",
+            encoding="utf-8",
+        )
+        authored = {path.relative_to(consumer).as_posix(): path.read_bytes()
+                    for path in consumer.rglob("*") if path.is_file()}
+        process, checked = run("check", "omnigent", consumer, agent, schemas)
+        self.assertEqual(0, process.returncode, process.stderr or process.stdout)
+        self.assertEqual("current", checked["project"]["status"])
+        self.assertEqual("complete", checked["project"]["audit_status"])
+        process, repeated = run("install", "omnigent", consumer, agent, schemas)
+        self.assertEqual(0, process.returncode, process.stderr or process.stdout)
+        self.assertEqual(authored, {path.relative_to(consumer).as_posix(): path.read_bytes()
+                                    for path in consumer.rglob("*") if path.is_file()})
 
     def test_cli_io_failure_still_emits_json(self) -> None:
         backup_file = self.temp / "backup-file"

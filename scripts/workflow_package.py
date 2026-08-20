@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from workflow_project_bootstrap import plan_project_bootstrap, write_project_bootstrap
 from workflow_package_state import (
     RECEIPT_FORMAT,
     RECEIPT_NAME,
@@ -163,13 +164,20 @@ def consumer_resolution(consumer: Path, schema_root: Path) -> dict[str, Any]:
 def install(args: argparse.Namespace, root: Path, version: str, roots: dict[str, Path]) -> dict[str, Any]:
     policy = policy_state(root)
     policy_content = None
+    project = None
+    project_writes: dict[Path, bytes] = {}
+    consumer: Path | None = None
     if args.consumer_repo:
+        consumer = Path(args.consumer_repo).expanduser().resolve()
         policy, policy_content = plan_consumer_policy(
-            Path(args.consumer_repo), root / "policy" / "AGENTS.fragment.md", version,
+            consumer, root / "policy" / "AGENTS.fragment.md", version,
         )
         policy["source_path"] = str(root / "policy" / "AGENTS.fragment.md")
         if policy["status"] == "conflict":
             raise PackageError("Consumer policy conflict blocks installation", {"policy": policy})
+        project, project_writes = plan_project_bootstrap(consumer, root)
+        if project["status"] == "conflict":
+            raise PackageError("Consumer project-bootstrap conflict blocks installation", {"project": project})
     backup = Path(args.backup_root).expanduser().resolve() if args.backup_root else None
     ensure_disjoint(roots, backup)
     manifests = {role: source_manifest(root, role) for role in roots}
@@ -195,6 +203,8 @@ def install(args: argparse.Namespace, root: Path, version: str, roots: dict[str,
         "initial_adoption": adoption, "backup_required": adoption, "legacy_extras": legacy_extras,
         "policy": policy,
     }
+    if project is not None:
+        result["project"] = project
     if legacy_extras:
         raise PackageError("Unresolved legacy-extra files block installation", result)
     if args.dry_run:
@@ -225,7 +235,11 @@ def install(args: argparse.Namespace, root: Path, version: str, roots: dict[str,
         write_consumer_policy(Path(policy["path"]), policy_content)
         policy["status"] = "current"
         policy["installed_version"] = version
-    result["status"] = "current"
+    if consumer is not None:
+        write_project_bootstrap(consumer, project_writes)
+        project, _ = plan_project_bootstrap(consumer, root)
+        result["project"] = project
+    result["status"] = "stale" if project is not None and project["status"] == "stale" else "current"
     return result
 
 
@@ -243,20 +257,27 @@ def check(args: argparse.Namespace, root: Path, version: str, roots: dict[str, P
     if args.consumer_repo:
         consumer = Path(args.consumer_repo).resolve()
         policy, _ = plan_consumer_policy(consumer, root / "policy" / "AGENTS.fragment.md", version)
+        project, _ = plan_project_bootstrap(consumer, root)
         policy["source_path"] = str(root / "policy" / "AGENTS.fragment.md")
         result["policy"] = policy
-        if policy["status"] == "conflict":
+        result["project"] = project
+        consumer_statuses = {policy["status"], project["status"]}
+        if "conflict" in consumer_statuses:
             result["status"] = "conflict"
-            result["policy_remediation"] = "Reconcile the reported managed AGENTS.md block; check never overwrites a conflict."
-        elif policy["status"] == "missing" and result["status"] != "conflict":
+        elif "missing" in consumer_statuses and result["status"] != "conflict":
             result["status"] = "missing"
-        elif policy["status"] == "stale" and result["status"] == "current":
+        elif "stale" in consumer_statuses and result["status"] == "current":
             result["status"] = "stale"
-        result["consumer"] = consumer_resolution(consumer, roots["openspec-schemas"])
-        if not result["consumer"]["current"]:
-            if result["status"] == "current":
-                result["status"] = "stale"
-            result["consumer_remediation"] = "Reconcile the reported project-local schema shadowing in the consumer; check never edits it."
+        if policy["status"] == "conflict":
+            result["policy_remediation"] = "Reconcile the reported managed AGENTS.md block; check never overwrites a conflict."
+        if project["status"] == "conflict":
+            result["project_remediation"] = "Reconcile unsafe canonical project paths; check never overwrites a conflict."
+        else:
+            result["consumer"] = consumer_resolution(consumer, roots["openspec-schemas"])
+            if not result["consumer"]["current"]:
+                if result["status"] == "current":
+                    result["status"] = "stale"
+                result["consumer_remediation"] = "Reconcile the reported project-local schema shadowing in the consumer; check never edits it."
     if result["status"] in {"missing", "stale"}:
         argv = update_argv(args, roots, version, "missing" in root_statuses)
         result["update_argv"] = argv
@@ -346,6 +367,8 @@ def emit(result: dict[str, Any], json_output: bool) -> None:
         print(f"consumer remediation: {result['consumer_remediation']}")
     if result.get("policy_remediation"):
         print(f"policy remediation: {result['policy_remediation']}")
+    if result.get("project_remediation"):
+        print(f"project remediation: {result['project_remediation']}")
     if result.get("error"):
         print(f"error: {result['error']}")
     if result.get("recovery"):
@@ -356,6 +379,12 @@ def emit(result: dict[str, Any], json_output: bool) -> None:
         print(f"consumer policy: {policy.get('status')}{path}")
         for issue in policy.get("issues", []):
             print(f"  - {issue.get('kind', 'issue')}: {issue.get('detail', '')}")
+    if result.get("project"):
+        project = result["project"]
+        print(f"project bootstrap: {project.get('status')} at {project.get('root')}")
+        print(f"semantic audit: {project.get('audit_status') or 'unknown'}")
+        for issue in project.get("issues", []):
+            print(f"  - {issue.get('kind', 'issue')} {issue.get('path', '')}: {issue.get('detail', '')}")
 
 
 def main(argv: list[str] | None = None) -> int:

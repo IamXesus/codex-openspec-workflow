@@ -32,6 +32,13 @@
 - Keep each consumer repository authoritative for its OpenSpec context, business and technical documentation, navigation, deployment convention, and domain-specific examples. Project-local schemas may intentionally shadow shared schemas and require explicit reconciliation; never overwrite or remove them implicitly.
 - A freshness check is read-only. An install with an explicit consumer repository may create `AGENTS.md` or update only the intact centrally managed policy block; it never owns surrounding consumer instructions. Installation does not pull Git, publish a release, or authorize any external effect.
 
+## Project Knowledge Bootstrap
+
+- An install with an explicitly selected consumer repository may create only missing canonical files under `docs/project-handoff/` and a missing `openspec/config.yaml`. Existing project documentation and configuration remain repository-owned and must not be heuristically replaced.
+- Treat `docs/project-handoff/project-audit.md` as structural evidence, not established project semantics. When its managed marker says `status=pending`, inspect the repository and applicable user authority before substantial implementation, populate only confirmed facts and explicit open questions, record the inspected Git/evidence state, and then change the marker to `status=complete`.
+- Keep business processes, integrations, technical architecture, open issues, and normative OpenSpec current behavior aligned with accepted implementation changes. Do not claim completion while affected repository knowledge disagrees with the code.
+- These repository paths and obligations are host-neutral. Codex, Orca, Omnigent, IDEs, and other repository-aware agents use the same committed files; no host-specific copy is authoritative.
+
 ## Material UI
 
 - Treat an accepted visual artifact as a testable contract. Record its authority, theme, viewports, states, and representative data grounded in inspected product/API evidence.
