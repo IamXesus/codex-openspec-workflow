@@ -55,7 +55,7 @@ class WorkflowPackageTests(unittest.TestCase):
         return argparse.Namespace(**values)
 
     def test_version_metadata_is_single_valid_source(self) -> None:
-        self.assertEqual("1.1.1", self.version)
+        self.assertEqual("1.2.0", self.version)
         package.validate_lock_metadata(self.root)
         metadata_root = self.temp / "metadata"
         metadata_root.mkdir()
@@ -444,7 +444,37 @@ class WorkflowPackageTests(unittest.TestCase):
             "- A freshness check is read-only. Installing the reusable package does not edit consumer repositories, "
             "merge this policy fragment, pull Git, publish a release, or authorize any external effect."
         )
-        legacy = current.replace(project_section, "").replace(current_sentence, legacy_sentence).rstrip("\r\n") + "\n"
+        continuous_authority = (
+            "- A clear request to change or implement software may proceed continuously through required planning, "
+            "local implementation, verification, and review. An explicit plan-only, review-only, diagnosis-only, "
+            "or other narrower request does not authorize work beyond that scope. Implementation never authorizes "
+            "an external, destructive, production, financial, or persistent-data effect."
+        )
+        legacy_authority = (
+            "- Planning does not authorize implementation. Implementation does not authorize an external, "
+            "destructive, production, financial, or persistent-data effect."
+        )
+        continuous_routing = (
+            "- Drive every required OpenSpec artifact in official dependency order, run its gates, and continue "
+            "automatically while accepted authority and evidence are sufficient. Do not pause merely because an "
+            "artifact, validation gate, implementation wave, or passing review completed. A generic continuation "
+            "resumes the flow but does not accept proposed decisions or answer open questions.\n"
+            "- Pause only for a user-owned clarification, decision, authorization, scope change, or unresolved "
+            "disposition; repair and rerun unambiguous in-scope agent-authored failures without asking. Explicit "
+            "plan-only work stops after validated planning, and every external effect still requires its separate GO."
+        )
+        legacy_routing = (
+            "- Advance planning one official OpenSpec artifact at a time. A generic continuation advances state "
+            "but does not accept proposed decisions."
+        )
+        legacy = (
+            current.replace(project_section, "")
+            .replace(current_sentence, legacy_sentence)
+            .replace(continuous_authority, legacy_authority)
+            .replace(continuous_routing, legacy_routing)
+            .rstrip("\r\n")
+            + "\n"
+        )
         agents = self.consumer / "AGENTS.md"
         agents.write_text(legacy, encoding="utf-8")
         package.install(

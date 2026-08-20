@@ -132,7 +132,7 @@ class SharedPlacementPolicyTests(unittest.TestCase):
     def test_readme_matches_distribution_contract(self) -> None:
         text = normalized("README.md")
         for concept in (
-            "1.1.1",
+            "1.2.0",
             "single version source",
             "current",
             "stale",
@@ -159,6 +159,41 @@ class SharedPlacementPolicyTests(unittest.TestCase):
         for operation in ("new", "status", "instructions", "init"):
             self.assertIn(f"<openspec> {operation}", text)
         self.assertNotRegex(text, r"`openspec\.cmd\s+(?:new|status|instructions|init|apply|check)\b")
+
+    def test_continuous_flow_preserves_user_owned_pause_boundaries(self) -> None:
+        assets = (
+            "README.md",
+            "policy/AGENTS.fragment.md",
+            "skills/openspec-workflow/SKILL.md",
+            "skills/openspec-workflow/agents/openai.yaml",
+            *self.schemas,
+        )
+        combined = "\n".join(normalized(relative) for relative in assets)
+        for concept in (
+            "continuous",
+            "automatically",
+            "user owned",
+            "plan only",
+            "proposed decision",
+            "open question",
+            "external effect",
+            "go",
+            "independent read only review",
+        ):
+            self.assertIn(concept, combined, f"continuous workflow lacks {concept!r}")
+
+        portable_contracts = "\n".join(read(relative).lower() for relative in assets)
+        for obsolete in (
+            "create exactly one ready artifact and stop",
+            "advance planning one official openspec artifact at a time",
+            "a planning request never carries authority into apply",
+            "then stop for an independent read-only review before continuing",
+        ):
+            self.assertNotIn(obsolete, portable_contracts)
+
+        skill = read("skills/openspec-workflow/SKILL.md").lower()
+        self.assertIn("`<openspec> status` and `<openspec> instructions` loop directly", skill)
+        self.assertIn("explicitly requested single-step helper", skill)
 
     def test_posix_wrapper_is_kept_with_lf_endings(self) -> None:
         self.assertIn("*.sh text eol=lf", read(".gitattributes").splitlines())
@@ -210,7 +245,7 @@ class SharedPlacementPolicyTests(unittest.TestCase):
             *source_manifest(ROOT, "openspec-schemas"),
         }
         self.assertFalse(any("agents.fragment" in path.lower() for path in installed_paths))
-        self.assertEqual("1.1.1", package.load_version(ROOT))
+        self.assertEqual("1.2.0", package.load_version(ROOT))
 
 
 if __name__ == "__main__":

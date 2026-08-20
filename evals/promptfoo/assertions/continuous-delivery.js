@@ -1,0 +1,1 @@
+module.exports = (output) => { const r=JSON.parse(output); return r.route === 'continuous-openspec-delivery' && r.preserves_unknowns === true && r.implementation_authorized === true && r.requires_owner_go === false; };

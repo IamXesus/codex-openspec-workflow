@@ -91,7 +91,9 @@ apply:
     Before any implementation, resolve the active openspec-workflow skill root and run as a separate fail-closed step:
     `python <openspec-workflow-skill-root>/scripts/validate_change.py --repo <repo> --change <change-name>`.
     Do not substitute native status/validation; any artifact edit makes an earlier pass stale.
-    Stop on a nonzero exit. In a fresh session first reselect this change, reject any expansion of
+    A nonzero exit remains fail-closed: diagnose and correct unambiguous in-scope agent-authored
+    artifacts, rerun the gate, and pause only when correction needs user authority or a material
+    decision, or cannot be safely resolved. In a fresh session first reselect this change, reject any expansion of
     a v1/v2 compatibility change, confirm the request still matches its accepted capability and
     existing open tasks, fetch upstream read-only, and record current HEAD,
     upstream HEAD, dirty state, and divergence. Reconcile referenced old commits as evidence/artifacts,
@@ -105,12 +107,13 @@ apply:
     solely by declaration type. Do not reorganize adjacent legacy code incidentally. A material
     ownership, namespace, or registration restructure requires accepted evidence-heavy scope and
     architecture review; consumer-specific examples remain local authority. After targeted
-    verification, run one independent read-only review before marking the change complete or
-    handing it off; resolve blocking findings and re-review affected
+    verification, dispatch and await one independent read-only review before marking the change complete or
+    handing it off; continue automatically after it passes, resolve blocking findings, and re-review affected
     contracts after fixes. If no independent reviewer is available, report the gate as not run and
     do not complete or hand off the change without explicit user disposition. A reviewer must declare
     full or partial coverage, checked requirements, and exclusions; partial coverage cannot close the
-    final checkpoint. Reopen affected tasks after a validated finding. Pause on drift or new unknowns.
+    final checkpoint. Reopen affected tasks after a validated finding. Reconcile unambiguous in-scope
+    drift automatically; pause on a new unknown only when it requires a user-owned decision.
     Before any production edit, run
     `python <architecture-review-skill-root>/scripts/validate_openspec_architecture.py --repo <repo> --change <change-name> --phase apply`.
     A nonzero exit blocks implementation even when native OpenSpec state says ready. Material

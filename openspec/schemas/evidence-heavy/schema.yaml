@@ -120,7 +120,9 @@ apply:
     Before any implementation, resolve the active openspec-workflow skill root and run as a separate fail-closed step:
     `python <openspec-workflow-skill-root>/scripts/validate_change.py --repo <repo> --change <change-name>`.
     Do not substitute native status/validation; any artifact edit makes an earlier pass stale.
-    Stop on a nonzero exit. In a fresh session first reselect this change, reject v1/v2 expansion,
+    A nonzero exit remains fail-closed: diagnose and correct unambiguous in-scope agent-authored
+    artifacts, rerun the gate, and pause only when correction needs user authority or a material
+    decision, or cannot be safely resolved. In a fresh session first reselect this change, reject v1/v2 expansion,
     fetch upstream read-only, and record branch/HEAD/upstream, upstream HEAD, dirty baseline, and
     divergence. Reconcile referenced old commits as evidence/artifacts, never an automatic
     implementation base. After a pass,
@@ -131,14 +133,14 @@ apply:
     solely by declaration type. Do not reorganize adjacent legacy code incidentally. A material
     ownership, namespace, or registration restructure requires accepted evidence-heavy scope and
     architecture review; consumer-specific examples remain local authority. Then implement one
-    semantic wave at a time and capture layer-appropriate evidence. At each wave checkpoint, run targeted checks and an independent
-    read-only review before dependent work. A validated High finding blocks the next wave;
+    semantic wave at a time and capture layer-appropriate evidence. At each wave checkpoint, run targeted checks, automatically dispatch and await an independent
+    read-only review before dependent work, and continue after a passing review. A validated High finding blocks the next wave;
     resolve a validated Medium finding or obtain explicit user disposition. Re-review affected
     findings after fixes. Run the final full-diff review before release; the last wave review may
     satisfy it only if the reviewer declared full pending-diff coverage, checked requirements, and
     exclusions, and any later material diff makes it stale. Reopen affected tasks and add a remediation
-    wave after validated findings. Pause on drift or new
-    unknowns. External effects still require their separate authority and GO gate.
+    wave after validated findings. Reconcile unambiguous in-scope drift automatically; pause on a new
+    unknown only when it requires a user-owned decision. External effects still require their separate authority and GO gate.
     Before any production edit, run `$architecture-review` against the inspected baseline and
     planning artifacts, then run
     `python <architecture-review-skill-root>/scripts/validate_openspec_architecture.py --repo <repo> --change <change-name> --phase apply`.
