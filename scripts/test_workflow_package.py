@@ -16,6 +16,21 @@ from unittest import mock
 import workflow_package as package
 
 
+def usable_openspec_cli() -> bool:
+    try:
+        executable = package.resolve_openspec_executable()
+        process = subprocess.run(
+            [executable, "--version"], text=True, encoding="utf-8", errors="replace",
+            capture_output=True, check=False, timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError, package.PackageError):
+        return False
+    return process.returncode == 0
+
+
+USABLE_OPENSPEC_CLI = usable_openspec_cli()
+
+
 class WorkflowPackageTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = Path(tempfile.mkdtemp(prefix="workflow-package-test-"))
@@ -40,7 +55,7 @@ class WorkflowPackageTests(unittest.TestCase):
         return argparse.Namespace(**values)
 
     def test_version_metadata_is_single_valid_source(self) -> None:
-        self.assertEqual("1.1.0", self.version)
+        self.assertEqual("1.1.1", self.version)
         package.validate_lock_metadata(self.root)
         metadata_root = self.temp / "metadata"
         metadata_root.mkdir()
@@ -49,6 +64,47 @@ class WorkflowPackageTests(unittest.TestCase):
         )
         with self.assertRaises(package.PackageError):
             package.load_version(metadata_root)
+
+    def test_openspec_executable_resolution_is_platform_specific(self) -> None:
+        isolated_path = self.temp / "isolated-path"
+        isolated_path.mkdir()
+        posix_executable = isolated_path / "openspec"
+        posix_executable.write_text("isolated fixture\n", encoding="utf-8")
+        os.chmod(posix_executable, 0o755)
+        finder = lambda candidate: shutil.which(candidate, path=str(isolated_path))
+        self.assertEqual(str(posix_executable), package.resolve_openspec_executable("posix", finder))
+        self.assertIsNone(finder("openspec.cmd"))
+        self.assertEqual(
+            "C:/isolated/openspec.cmd",
+            package.resolve_openspec_executable(
+                "nt", lambda candidate: "C:/isolated/openspec.cmd" if candidate == "openspec.cmd" else None,
+            ),
+        )
+        self.assertEqual(
+            "C:/isolated/openspec",
+            package.resolve_openspec_executable(
+                "nt", lambda candidate: "C:/isolated/openspec" if candidate == "openspec" else None,
+            ),
+        )
+        with self.assertRaises(package.PackageError):
+            package.resolve_openspec_executable("posix", lambda _candidate: None)
+
+    def test_real_cli_gate_rejects_a_discovered_but_broken_shim(self) -> None:
+        broken = subprocess.CompletedProcess([], 127, stdout="", stderr="node: not found")
+        with mock.patch("workflow_package.resolve_openspec_executable", return_value="/mounted/openspec"), mock.patch(
+            "test_workflow_package.subprocess.run", return_value=broken,
+        ) as run:
+            self.assertFalse(usable_openspec_cli())
+        run.assert_called_once_with(
+            ["/mounted/openspec", "--version"], text=True, encoding="utf-8", errors="replace",
+            capture_output=True, check=False, timeout=10,
+        )
+
+        working = subprocess.CompletedProcess([], 0, stdout="1.8.0", stderr="")
+        with mock.patch("workflow_package.resolve_openspec_executable", return_value="openspec"), mock.patch(
+            "test_workflow_package.subprocess.run", return_value=working,
+        ):
+            self.assertTrue(usable_openspec_cli())
 
     def test_orca_and_omnigent_share_stable_agent_root(self) -> None:
         with mock.patch.object(Path, "home", return_value=self.temp / "home"):
@@ -694,12 +750,14 @@ class WorkflowPackageTests(unittest.TestCase):
             for schema in package.SCHEMAS
         ]
         completed = [subprocess.CompletedProcess([], 0, stdout=json.dumps(item), stderr="") for item in payloads]
-        with mock.patch("workflow_package.subprocess.run", side_effect=completed):
+        with mock.patch("workflow_package.resolve_openspec_executable", return_value="isolated-openspec"), mock.patch(
+            "workflow_package.subprocess.run", side_effect=completed,
+        ):
             result = package.consumer_resolution(self.temp / "consumer", self.schemas)
         self.assertFalse(result["current"])
         self.assertTrue(all(item["shadowing"] for item in result["schemas"]))
 
-    @unittest.skipUnless(shutil.which("openspec.cmd") or shutil.which("openspec"), "OpenSpec CLI is required")
+    @unittest.skipUnless(USABLE_OPENSPEC_CLI, "A platform-correct working OpenSpec CLI is required")
     def test_real_consumer_resolution_is_read_only(self) -> None:
         consumer = self.temp / "consumer"
         schemas = consumer / "openspec" / "schemas"
@@ -734,7 +792,7 @@ class WorkflowPackageTests(unittest.TestCase):
         self.assertIn("receipt-missing", human.stdout)
         self.assertIn("update:", human.stdout)
 
-    @unittest.skipUnless(shutil.which("openspec.cmd") or shutil.which("openspec"), "OpenSpec CLI is required")
+    @unittest.skipUnless(USABLE_OPENSPEC_CLI, "A platform-correct working OpenSpec CLI is required")
     def test_cli_consumer_policy_lifecycle_rehearsal(self) -> None:
         script = str(self.root / "scripts" / "workflow_package.py")
 
@@ -810,7 +868,7 @@ class WorkflowPackageTests(unittest.TestCase):
         }
         self.assertEqual(before, after)
 
-    @unittest.skipUnless(shutil.which("openspec.cmd") or shutil.which("openspec"), "OpenSpec CLI is required")
+    @unittest.skipUnless(USABLE_OPENSPEC_CLI, "A platform-correct working OpenSpec CLI is required")
     def test_cli_project_bootstrap_is_host_neutral_and_semantic_handoff_is_preserved(self) -> None:
         script = str(self.root / "scripts" / "workflow_package.py")
 

@@ -132,7 +132,7 @@ class SharedPlacementPolicyTests(unittest.TestCase):
     def test_readme_matches_distribution_contract(self) -> None:
         text = normalized("README.md")
         for concept in (
-            "1.1.0",
+            "1.1.1",
             "single version source",
             "current",
             "stale",
@@ -149,6 +149,20 @@ class SharedPlacementPolicyTests(unittest.TestCase):
             "never pulls git",
         ):
             self.assertIn(concept, text, f"README lacks executable contract concept {concept!r}")
+
+    def test_portable_skill_has_one_explicit_platform_executable_contract(self) -> None:
+        text = read("skills/openspec-workflow/SKILL.md")
+        cmd_lines = [line for line in text.splitlines() if "openspec.cmd" in line]
+        self.assertEqual(1, len(cmd_lines))
+        self.assertIn("Windows", cmd_lines[0])
+        self.assertIn("POSIX/Linux use `openspec`", text)
+        for operation in ("new", "status", "instructions", "init"):
+            self.assertIn(f"<openspec> {operation}", text)
+        self.assertNotRegex(text, r"`openspec\.cmd\s+(?:new|status|instructions|init|apply|check)\b")
+
+    def test_posix_wrapper_is_kept_with_lf_endings(self) -> None:
+        self.assertIn("*.sh text eol=lf", read(".gitattributes").splitlines())
+        self.assertNotIn(b"\r\n", (ROOT / "scripts" / "install.sh").read_bytes())
 
     def test_documented_cli_and_managed_policy_boundary_are_executable(self) -> None:
         parser = package.parser()
@@ -196,7 +210,7 @@ class SharedPlacementPolicyTests(unittest.TestCase):
             *source_manifest(ROOT, "openspec-schemas"),
         }
         self.assertFalse(any("agents.fragment" in path.lower() for path in installed_paths))
-        self.assertEqual("1.1.0", package.load_version(ROOT))
+        self.assertEqual("1.1.1", package.load_version(ROOT))
 
 
 if __name__ == "__main__":

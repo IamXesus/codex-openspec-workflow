@@ -137,8 +137,20 @@ def display_command(argv: list[str]) -> str:
     return subprocess.list2cmdline(argv) if os.name == "nt" else shlex.join(argv)
 
 
+def resolve_openspec_executable(platform_name: str | None = None, finder=None) -> str:
+    host = platform_name or os.name
+    find = finder or shutil.which
+    candidates = ("openspec.cmd", "openspec") if host == "nt" else ("openspec",)
+    for candidate in candidates:
+        executable = find(candidate)
+        if executable:
+            return executable
+    expected = "openspec.cmd or shell-resolved openspec" if host == "nt" else "openspec"
+    raise PackageError(f"OpenSpec CLI 1.8.x was not found as {expected}")
+
+
 def consumer_resolution(consumer: Path, schema_root: Path) -> dict[str, Any]:
-    executable = "openspec.cmd" if os.name == "nt" else "openspec"
+    executable = resolve_openspec_executable()
     results = []
     for schema in SCHEMAS:
         process = subprocess.run(
