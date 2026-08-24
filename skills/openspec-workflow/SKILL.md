@@ -93,6 +93,12 @@ Read [references/requirement-contract.md](references/requirement-contract.md) be
 4. Verify implementation against scenarios and record actual evidence. OpenSpec validation proves structure, not truth or runtime correctness.
 5. External, production, destructive, financial, persistent-data, or irreversible effects still require the separate applicable `GO`; an OpenSpec change never grants authority.
 
+After `<openspec> archive <change-name>` succeeds, resolve this active skill's root and run the standalone repository integrity gate as a separate step:
+
+- `python <openspec-workflow-skill-root>/scripts/validate_requirement_ids.py --repo <repo>`
+
+Then run native strict validation and `git diff --check`. A nonzero repository integrity result blocks commit, release, deployment, and any claim that archive completed cleanly. Archived copies under `openspec/changes/archive/` are history and are intentionally excluded; the gate checks the resulting current specifications under `openspec/specs/`.
+
 Before an apply step creates or materially moves a production type, inspect neighboring feature structure, namespaces or module boundaries, dependency registration, and relevant architecture tests. Place code by feature and cohesive responsibility. Keep a readable cohesive root flat; add responsibility-named subfolders only when they materially improve navigation. Do not create generic `Interfaces` and `Implementations` buckets solely by declaration type, and do not reorganize adjacent legacy code incidentally. A material ownership, namespace, or registration restructure requires accepted `evidence-heavy` scope and architecture review. Concrete feature names and placement examples remain authoritative in the consumer repository.
 
 Before step 1, run the architecture growth gate for every v1 architecture contract. A nonzero architecture validator exit blocks implementation even when native OpenSpec status and the ordinary evidence validator pass.

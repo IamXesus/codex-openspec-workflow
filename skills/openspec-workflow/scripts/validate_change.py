@@ -10,6 +10,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from validate_requirement_ids import validate_change_ids
 from validate_requirements import format_traceability_matrix, validate_change
 
 
@@ -45,7 +46,8 @@ def run_gate(repo: Path, change: str) -> int:
         print("ERROR: native OpenSpec strict validation failed", file=sys.stderr)
         return 2
 
-    errors = validate_change(change_dir)
+    errors = validate_change_ids(repo, change_dir)
+    errors.extend(validate_change(change_dir))
     if errors:
         for error in errors:
             print(f"ERROR: {error}", file=sys.stderr)
