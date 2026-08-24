@@ -20,7 +20,7 @@ if (Test-Path -LiteralPath $skillValidator) {
 
 Push-Location (Join-Path $repoRoot 'skills\openspec-workflow\scripts')
 try {
-    python -m unittest -v test_validate_requirements.py test_validate_change.py
+    python -m unittest -v test_validate_requirements.py test_validate_requirement_ids.py test_validate_change.py
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 } finally {
     Pop-Location
