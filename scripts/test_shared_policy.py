@@ -29,6 +29,10 @@ class SharedPlacementPolicyTests(unittest.TestCase):
         "openspec/schemas/evidence-core/schema.yaml",
         "openspec/schemas/evidence-heavy/schema.yaml",
     )
+    task_templates = (
+        "openspec/schemas/evidence-core/templates/tasks.md",
+        "openspec/schemas/evidence-heavy/templates/tasks.md",
+    )
 
     def assert_general_placement_contract(self, relative: str) -> None:
         text = normalized(relative)
@@ -131,8 +135,8 @@ class SharedPlacementPolicyTests(unittest.TestCase):
 
     def test_readme_matches_distribution_contract(self) -> None:
         text = normalized("README.md")
+        self.assertIn(package.load_version(ROOT), read("README.md"))
         for concept in (
-            "1.2.0",
             "single version source",
             "current",
             "stale",
@@ -195,6 +199,86 @@ class SharedPlacementPolicyTests(unittest.TestCase):
         self.assertIn("`<openspec> status` and `<openspec> instructions` loop directly", skill)
         self.assertIn("explicitly requested single-step helper", skill)
 
+    def test_shared_contract_selects_minimum_sufficient_risk_driven_verification(self) -> None:
+        authoring_assets = (
+            "skills/openspec-workflow/SKILL.md",
+            "skills/coding-guardrails/SKILL.md",
+            *self.schemas,
+        )
+        for relative in authoring_assets:
+            text = normalized(relative)
+            with self.subTest(relative=relative):
+                for concept in (
+                    "minimum sufficient",
+                    "existing check",
+                    "vertical slice",
+                    "distinct risk",
+                    "external boundaries",
+                    "real provider",
+                    "touched feature slice",
+                    "separate explicit",
+                    "full suite",
+                    "test count",
+                ):
+                    self.assertIn(concept, text, f"{relative} lacks {concept!r}")
+
+        for relative in self.schemas:
+            text = normalized(relative)
+            with self.subTest(relative=relative, phase="task-and-apply"):
+                self.assertGreaterEqual(text.count("minimum sufficient"), 2)
+                self.assertGreaterEqual(text.count("one concrete check may cover several traced tasks"), 2)
+
+        for relative in self.task_templates:
+            text = normalized(relative)
+            with self.subTest(relative=relative):
+                self.assertIn("minimum sufficient existing/shared/new/manual check", text)
+                self.assertIn("one check may cover several traced tasks or requirements", text)
+
+        review = normalized("skills/code-reviewer/SKILL.md")
+        for concept in (
+            "test delta",
+            "distinct risk",
+            "existing evidence",
+            "faithful layer",
+            "brittleness",
+            "consolidation opportunity",
+            "separate explicit",
+            "test count",
+        ):
+            self.assertIn(concept, review, f"code reviewer lacks {concept!r}")
+
+        self.assertIn("full diff", review)
+        self.assertIn("заблокирован", review)
+        self.assertIn("avoidable overlap", review)
+
+        openspec_skill = read("skills/openspec-workflow/SKILL.md").lower()
+        self.assertIn(
+            "do not use test count, coverage, test-to-production loc, or mandatory mutation quotas",
+            openspec_skill,
+        )
+        self.assertIn("do not create another verification artifact", openspec_skill)
+
+        guardrails = read("skills/coding-guardrails/SKILL.md").lower()
+        self.assertIn(
+            "do not optimize to fixed test-count, coverage, test-to-production loc, or mandatory mutation quotas",
+            guardrails,
+        )
+        self.assertIn("do not create a separate verification artifact", guardrails)
+
+        for relative in self.schemas:
+            schema = read(relative).lower()
+            with self.subTest(relative=relative, rule="negative-policy"):
+                self.assertIn(
+                    "do not add a verification artifact, numeric quota, or mandatory mutation gate",
+                    schema,
+                )
+
+        reviewer = read("skills/code-reviewer/SKILL.md").lower()
+        self.assertIn(
+            "не используй test count, coverage, test-to-production loc или обязательный mutation threshold",
+            reviewer,
+        )
+
     def test_posix_wrapper_is_kept_with_lf_endings(self) -> None:
         self.assertIn("*.sh text eol=lf", read(".gitattributes").splitlines())
         self.assertNotIn(b"\r\n", (ROOT / "scripts" / "install.sh").read_bytes())
@@ -245,7 +329,6 @@ class SharedPlacementPolicyTests(unittest.TestCase):
             *source_manifest(ROOT, "openspec-schemas"),
         }
         self.assertFalse(any("agents.fragment" in path.lower() for path in installed_paths))
-        self.assertEqual("1.2.0", package.load_version(ROOT))
 
 
 if __name__ == "__main__":

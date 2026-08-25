@@ -21,7 +21,8 @@ description: "Используй этот навык по умолчанию д�
 6. Проверь миграции, конфигурацию, ошибки, логирование и совместимость.
 7. Для material UI прочитай принятый visual artifact и проверь rendered evidence на тех же theme/viewports/states с репрезентативной формой данных. Не принимай selectors, screenshots-on-disk или unit tests за visual fidelity.
 8. Присвой каждому finding уровень `High`, `Medium` или `Low` и явно проверь доказательства проверки.
-9. Если ревью без правок, не меняй файлы.
+9. Проверь test delta: какие проверки добавлены, изменены, переиспользованы или удалены; какой отдельный риск они ловят; не дублируют ли existing evidence; выбран ли самый дешёвый достоверный уровень; можно ли безопасно объединить проверки в затронутом feature-срезе.
+10. Если ревью без правок, не меняй файлы.
 
 ## Принципы
 
@@ -31,6 +32,11 @@ description: "Используй этот навык по умолчанию д�
 - Отмечай overengineering, speculative abstraction и custom build вместо существующего helper/SDK/OSS как риск поддержки, если это влияет на изменение.
 - Проверяй пользовательский контракт, а не только внутреннюю реализацию.
 - Тесты показывают намерение изменения; слабый или отсутствующий тест на bug fix сам по себе риск.
+- Requirement, scenario или implementation task не требуют отдельного нового теста. Один minimum-sufficient evidence set может покрывать несколько задач и требований; несколько уровней для одного observable failure допустимы только при отдельном layer-specific риске.
+- Предпочитай существующий тест, его узкое расширение или параметризацию до создания нового. Для критичного observable flow ценнее стабильный real vertical slice, а для денег, транзакций, concurrency, provider-specific persistence, authorization negatives, retries и внешних контрактов — точечная проверка на самом дешёвом достоверном уровне.
+- Mocks должны стоять на внешних границах, а не повторять собственную application-логику. Удаление или объединение legacy tests в обычной задаче ограничено затронутым feature-срезом и требует прошедшего replacement evidence; полная консолидация suite требует separate explicit scope.
+- Не используй test count, coverage, test-to-production LOC или обязательный mutation threshold как замену семантическому review.
+- Если несколько новых или изменённых проверок ловят один observable failure без distinct layer-specific risk, это `Medium` finding: full-diff `PASS` заблокирован, пока проверки не консолидированы или accepted requirement явно не изменён пользователем.
 - Большой diff с feature work и refactoring вместе хуже ревьюится; предлагай split, если это блокирует понимание.
 
 ## Проверки
@@ -41,6 +47,8 @@ description: "Используй этот навык по умолчанию д�
 - Спекулятивные абстракции, лишняя конфигурируемость, новые зависимости и bicycle-code вместо существующих patterns.
 - Недостающие тесты на критичные ветки.
 - Проверка проверки: какие команды запускались, что они покрывают, есть ли manual/UI evidence для визуальных изменений.
+- Test-delta economy: distinct risk, пересечение с существующим evidence, faithful layer, brittleness, consolidation opportunity и отдельное обоснование повторения одного поведения на нескольких уровнях.
+- Full-diff readiness запрещён при avoidable overlap одного observable failure без distinct layer-specific risk.
 - Для UI: artifact, theme/viewports, state matrix, representative cardinality/long data, открытые screenshots, comparison verdict и различие mocked/local от real post-deploy evidence.
 - `High`: подтверждённый дефект безопасности, авторизации, data loss/corruption, сломанная ключевая функциональность, миграция или release blocker.
 - `Medium`: подтверждённый correctness/reliability дефект или существенный тестовый пробел, который нужно исправить либо явно принять до продолжения зависимой работы.

@@ -55,7 +55,7 @@ class WorkflowPackageTests(unittest.TestCase):
         return argparse.Namespace(**values)
 
     def test_version_metadata_is_single_valid_source(self) -> None:
-        self.assertEqual("1.2.0", self.version)
+        self.assertEqual("1.3.0", self.version)
         package.validate_lock_metadata(self.root)
         metadata_root = self.temp / "metadata"
         metadata_root.mkdir()
