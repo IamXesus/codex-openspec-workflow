@@ -46,6 +46,16 @@ Before building custom code, check:
 
 Build custom only when existing options are missing, too risky, too heavy, incompatible with the project, or more expensive to adapt than to implement narrowly.
 
+## Verification Economy Gate
+
+- A requirement, scenario, implementation task, or changed file does not imply a new automated test. Select one minimum-sufficient evidence set for the distinct risks and allow the same concrete check to cover several tasks or requirements.
+- Prefer an existing check, then a focused extension or parameterization, before adding a new test. A new automated test must detect a distinct reachable regression that the existing suite does not already prove.
+- Prefer one stable real vertical slice as primary acceptance evidence for a critical observable flow when practical. Add unit, real-provider integration, contract, browser, or runtime checks only when they are the cheapest faithful way to prove a separate risk.
+- Mock external boundaries, not the application's own behavior. Use the real database provider for provider-specific queries, constraints, transactions, concurrency, or migrations.
+- During ordinary work, merge or remove overlapping legacy tests only in the touched feature slice and only after replacement evidence passes. Whole-suite consolidation requires a separate explicit request; do not turn a feature change into unrelated test cleanup.
+- Do not optimize to fixed test-count, coverage, test-to-production LOC, or mandatory mutation quotas. A full-suite run is a final regression gate, not a reason to add a test per task.
+- Do not create a separate verification artifact or per-test metadata table for this selection.
+
 ## Dependency Gate
 
 Add a dependency only when it lowers correctness or maintenance risk compared with existing project/framework capability. Check license, maintenance, package footprint, integration cost, and whether it handles the hard parts better than local code. For format/export/parsing work, prefer a proven library over ad hoc escaping when the project has no existing safe helper.
@@ -106,6 +116,7 @@ Before final response, check:
 - Existing conventions were followed unless a deviation was explained.
 - Custom code was justified against existing/local/OSS options when relevant.
 - Tests or manual checks prove the main behavior and likely regression path.
+- New, changed, reused, and removed tests have distinct risk and layer justification without avoidable overlap in the touched feature slice.
 - Subagents were used when useful, or skipped for a concrete reason.
 
 ## Red Flags

@@ -79,6 +79,16 @@ artifacts:
       and put one `openspec-trace` marker with exact REQ ids and concrete planned verification on each
       implementation checkbox. For explicit `skip_specs: true`, use `requirements=none` while still recording concrete planned verification. The validator prints the read-only requirement-to-decision-to-task-to-verification
       matrix; do not create another artifact.
+      Plan one minimum-sufficient evidence set for distinct risks, not one new automated test per
+      scenario, task, or file. One concrete check may cover several traced tasks or requirements.
+      Prefer reusing an existing check, then extending or parameterizing it, before adding a test
+      for a distinct reachable regression. Prefer one stable real vertical slice for a critical
+      observable flow when practical; add lower-level or browser/runtime evidence only for a
+      separate risk at its cheapest faithful layer. Mock external boundaries rather than the
+      consumer's own application, and use a real provider when database semantics are the claim.
+      Ordinary work may consolidate overlapping legacy tests only in the touched feature slice
+      after replacement evidence passes; whole-suite consolidation requires a separate explicit
+      request. Do not add a verification artifact, numeric quota, or mandatory mutation gate.
       For work that creates or materially moves a production type, derive a placement task or
       verification that inspects neighboring feature structure, namespaces or module boundaries,
       dependency registration, and relevant architecture tests. Plan placement by feature and
@@ -125,7 +135,15 @@ apply:
     decision, or cannot be safely resolved. In a fresh session first reselect this change, reject v1/v2 expansion,
     fetch upstream read-only, and record branch/HEAD/upstream, upstream HEAD, dirty baseline, and
     divergence. Reconcile referenced old commits as evidence/artifacts, never an automatic
-    implementation base. After a pass,
+    implementation base. After a pass, implement the planned minimum-sufficient evidence set
+    without adding a test merely because a task or scenario exists. Reuse, extend, or parameterize
+    suitable checks first; one concrete check may cover several traced tasks when it proves their
+    combined result. Use a stable real vertical slice as primary acceptance evidence when practical,
+    and add focused unit, real-provider integration, contract, browser, or runtime checks only for
+    distinct risks at their faithful layer. Keep mocks at external boundaries. Consolidate legacy
+    tests only inside the touched feature slice after replacement evidence passes; repository-wide
+    consolidation requires separate explicit scope. Treat the full suite as a final regression gate,
+    not a test-count target. Then,
     before creating or materially moving a production type, inspect neighboring feature structure,
     namespaces or module boundaries, dependency registration, and relevant architecture tests.
     Place code by feature and cohesive responsibility; use responsibility-named subfolders only
