@@ -354,7 +354,7 @@ class RequirementValidationTests(unittest.TestCase):
         ))
         self.assertTrue(any("requires at least one implementation task" in error for error in errors))
 
-    def test_heavy_each_wave_requires_checkpoint(self):
+    def test_v1_heavy_each_wave_still_requires_checkpoint(self):
         errors = validate_change(self.make_change(
             "## ADDED Requirements\n\n### Requirement: Export\n"
             "**Status:** accepted\n**Source:** user:USER-001\nThe system SHALL export.\n",
@@ -370,6 +370,67 @@ class RequirementValidationTests(unittest.TestCase):
             ),
         ))
         self.assertTrue(any("wave 'ui' requires exactly one wave checkpoint" in error for error in errors))
+
+    def test_v2_heavy_each_wave_still_requires_checkpoint(self):
+        errors = validate_change(self.make_change(
+            "## ADDED Requirements\n\n### Requirement: Export\n"
+            "**Status:** accepted\n**Source:** user:USER-001\nThe system SHALL export.\n",
+            proposal=(
+                "## Why\nConfirmed legacy review behavior.\n\n"
+                "## Evidence\n- USER-001: requested export.\n\n"
+                "## UI Contract\n\n**Mode:** none\n"
+            ),
+            schema="evidence-heavy",
+            tasks=(
+                "<!-- openspec-review-contract:v2 -->\nUI contract: none\n\n"
+                "## 1. <!-- openspec-wave:backend --> Backend\n\n"
+                "- [ ] 1.1 Implement backend.\n"
+                "- [ ] 2.1 <!-- openspec-review:final --> Review full diff.\n"
+            ),
+        ))
+        self.assertTrue(any("wave 'backend' requires exactly one wave checkpoint" in error for error in errors))
+
+    def test_heavy_wave_rejects_duplicate_intermediate_reviews(self):
+        errors = validate_change(self.make_change(
+            "## ADDED Requirements\n\n### Requirement: Export\n"
+            "**ID:** REQ-001\n**Status:** accepted\n**Source:** user:USER-001\nThe system SHALL export.\n",
+            proposal=(
+                "## Why\nConfirmed risk-driven review behavior.\n\n"
+                "## Evidence\n- USER-001: requested export.\n\n"
+                "## UI Contract\n\n**Mode:** none\n"
+            ),
+            schema="evidence-heavy",
+            tasks=(
+                "<!-- openspec-review-contract:v3 -->\nUI contract: none\n\n"
+                "## 1. <!-- openspec-wave:backend --> Backend\n\n"
+                "- [ ] 1.1 <!-- openspec-trace: requirements=REQ-001; verification=run export test --> Implement backend.\n"
+                "- [ ] 1.2 <!-- openspec-review:wave --> Review contract.\n"
+                "- [ ] 1.3 <!-- openspec-review:wave --> Review implementation.\n"
+                "- [ ] 2.1 <!-- openspec-review:final --> Review full diff.\n"
+            ),
+        ))
+        self.assertTrue(any("allows at most one wave checkpoint" in error for error in errors))
+
+    def test_heavy_final_only_review_contract_passes(self):
+        errors = validate_change(self.make_change(
+            "## ADDED Requirements\n\n### Requirement: Export\n"
+            "**ID:** REQ-001\n**Status:** accepted\n**Source:** user:USER-001\nThe system SHALL export.\n",
+            proposal=(
+                "## Why\nConfirmed risk-driven review behavior.\n\n"
+                "## Evidence\n- USER-001: requested export.\n\n"
+                "## UI Contract\n\n**Mode:** none\n"
+            ),
+            schema="evidence-heavy",
+            tasks=(
+                "<!-- openspec-review-contract:v3 -->\nUI contract: none\n\n"
+                "## 1. <!-- openspec-wave:backend --> Backend\n\n"
+                "- [ ] 1.1 <!-- openspec-trace: requirements=REQ-001; verification=run backend test --> Implement backend.\n"
+                "## 2. <!-- openspec-wave:integration --> Integration\n\n"
+                "- [ ] 2.1 <!-- openspec-trace: requirements=REQ-001; verification=run integration test --> Integrate backend.\n"
+                "- [ ] 3.1 <!-- openspec-review:final --> Review full diff.\n"
+            ),
+        ))
+        self.assertEqual([], errors)
 
     def test_duplicate_evidence_id_fails(self):
         errors = validate_change(self.make_change(

@@ -55,7 +55,7 @@ class WorkflowPackageTests(unittest.TestCase):
         return argparse.Namespace(**values)
 
     def test_version_metadata_is_single_valid_source(self) -> None:
-        self.assertEqual("1.3.0", self.version)
+        self.assertEqual("1.4.0", self.version)
         package.validate_lock_metadata(self.root)
         metadata_root = self.temp / "metadata"
         metadata_root.mkdir()
@@ -467,11 +467,25 @@ class WorkflowPackageTests(unittest.TestCase):
             "- Advance planning one official OpenSpec artifact at a time. A generic continuation advances state "
             "but does not accept proposed decisions."
         )
+        current_review = (
+            "- Keep semantic heavy waves separate from review triggers. Run intermediate independent review only "
+            "after stable targeted verification when a material risk or downstream dependency justifies it; do not "
+            "review every wave, file, checkbox, or mechanical remediation. Consolidate fixes into targeted continuation "
+            "of the existing review cycle when practical. Non-production test/staging effects retain explicit GO, "
+            "rollback, scope, and preflight but may produce evidence before the mandatory current full-diff review for "
+            "production release/deployment. Do not equate artifact existence, checked tasks, green tests, release "
+            "readiness, and deployment."
+        )
+        legacy_review = (
+            "- Review coherent heavy implementation waves and run one final full-diff review before release. "
+            "Do not equate artifact existence, checked tasks, green tests, release readiness, and deployment."
+        )
         legacy = (
             current.replace(project_section, "")
             .replace(current_sentence, legacy_sentence)
             .replace(continuous_authority, legacy_authority)
             .replace(continuous_routing, legacy_routing)
+            .replace(current_review, legacy_review)
             .rstrip("\r\n")
             + "\n"
         )

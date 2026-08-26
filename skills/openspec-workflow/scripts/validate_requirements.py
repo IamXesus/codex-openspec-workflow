@@ -491,27 +491,23 @@ def validate_review_contract(change_dir: Path) -> list[str]:
             covered_task_lines.update(line for line, _ in segment_tasks)
             if not normal_tasks:
                 errors.append(f"tasks.md:{start}: wave '{wave_id}' requires at least one implementation task")
-            if len(segment_markers) != 1:
+            if contract_v3:
+                if len(segment_markers) > 1:
+                    errors.append(f"tasks.md:{start}: wave '{wave_id}' allows at most one wave checkpoint")
+            elif len(segment_markers) != 1:
                 errors.append(f"tasks.md:{start}: wave '{wave_id}' requires exactly one wave checkpoint")
-            elif segment_tasks and segment_markers[0][0] != segment_tasks[-1][0]:
-                errors.append(f"tasks.md:{segment_markers[0][0]}: wave checkpoint must be the last task in wave '{wave_id}'")
+            if len(segment_markers) == 1:
+                marker_line, _, marker_done = segment_markers[0]
+                if segment_tasks and marker_line != segment_tasks[-1][0]:
+                    errors.append(f"tasks.md:{marker_line}: wave checkpoint must be the last task in wave '{wave_id}'")
+                if marker_done and any(not done for line, done in segment_tasks if line < marker_line):
+                    errors.append(
+                        f"tasks.md:{marker_line}: completed wave checkpoint has incomplete tasks in its wave"
+                    )
         uncovered = [line for line, _ in checkboxes if line < final_line and line not in covered_task_lines]
         if uncovered:
             errors.append(f"tasks.md:{uncovered[0]}: task is outside an explicit openspec-wave section")
 
-    previous_review_line = 0
-    for line_number, kind, done in markers:
-        if kind == "wave" and done:
-            pending = [
-                line
-                for line, task_done in checkboxes
-                if previous_review_line < line < line_number and not task_done
-            ]
-            if pending:
-                errors.append(
-                    f"tasks.md:{line_number}: completed wave checkpoint has incomplete tasks in its wave"
-                )
-        previous_review_line = line_number
     return errors
 
 

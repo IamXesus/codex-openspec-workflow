@@ -47,7 +47,7 @@ Perform an evidence-based, read-only review unless the user explicitly asks to i
    - Include a growth-hotspot summary, responsibility map, coverage statement, exclusions, and unknowns.
    - If no blocking issue exists, say so explicitly while still recording material maintainability risks.
    - Distinguish architecture quality from green tests, requirement completion, release readiness, and deployment state.
-   - For an architecture-sensitive implementation wave, require an independent read-only code reviewer to record Coverage, Growth, Ownership, Findings, Exclusions, and Reviewer. A validated High finding blocks dependent work; resolve a validated Medium finding or obtain explicit user disposition.
+   - For an architecture-sensitive implementation boundary, include Coverage, Growth, Ownership, Findings, Exclusions, and Reviewer in the next planned intermediate or final independent code review. Do not launch a separate architecture reviewer when that current review already covers the same full diff and architecture fields. A validated High finding blocks dependent work; resolve a validated Medium finding or obtain explicit user disposition.
 
 ## Architecture Checkpoint Output
 

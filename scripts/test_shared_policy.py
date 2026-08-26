@@ -258,6 +258,54 @@ class SharedPlacementPolicyTests(unittest.TestCase):
         )
         self.assertIn("do not create another verification artifact", openspec_skill)
 
+    def test_heavy_review_orchestration_is_risk_driven_without_weakening_final_gate(self) -> None:
+        decision_assets = (
+            "skills/openspec-workflow/SKILL.md",
+            "openspec/schemas/evidence-heavy/schema.yaml",
+            "policy/AGENTS.fragment.md",
+            "README.md",
+        )
+        combined = "\n".join(normalized(relative) for relative in decision_assets)
+        for concept in (
+            "material risk",
+            "downstream dependency",
+            "deterministic",
+            "mechanical",
+            "targeted continuation",
+            "test/staging",
+            "rollback",
+            "full pending diff",
+            "production release",
+        ):
+            self.assertIn(concept, combined, f"risk-driven review contract lacks {concept!r}")
+
+        skill = normalized("skills/openspec-workflow/SKILL.md")
+        for concept in (
+            "pre ci",
+            "stable changed file inventory",
+            "do not spawn a fresh reviewer for every finding",
+            "do not automatically stale unaffected",
+        ):
+            self.assertIn(concept, skill, f"workflow skill lacks {concept!r}")
+
+        architecture = normalized("skills/architecture-review/SKILL.md")
+        self.assertIn("next planned intermediate or final", architecture)
+        self.assertIn("do not launch a separate architecture reviewer", architecture)
+        self.assertIn("same full diff", architecture)
+
+        heavy = normalized("openspec/schemas/evidence-heavy/schema.yaml")
+        self.assertIn("at most one intermediate", heavy)
+        self.assertIn("does not require the final release review", heavy)
+        self.assertIn("merely because it is a", heavy)
+
+        template = read("openspec/schemas/evidence-heavy/templates/tasks.md")
+        active_wave_reviews = [
+            line for line in template.splitlines()
+            if re.match(r"^\s*-\s*\[[ xX]\].*openspec-review:wave", line)
+        ]
+        self.assertEqual([], active_wave_reviews, "new heavy plans must default to final-only review")
+        self.assertIn("openspec-review:final", template)
+
         guardrails = read("skills/coding-guardrails/SKILL.md").lower()
         self.assertIn(
             "do not optimize to fixed test-count, coverage, test-to-production loc, or mandatory mutation quotas",

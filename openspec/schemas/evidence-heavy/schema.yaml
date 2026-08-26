@@ -97,9 +97,11 @@ artifacts:
       belongs in accepted evidence-heavy scope with architecture review. Concrete examples remain
       authoritative in the consumer repository. Group tasks
       under a small number of semantic implementation waves, not arbitrary task counts. Mark every
-      wave heading with a unique `<!-- openspec-wave:<id> -->`. End each
-      wave with a review-checkpoint checkbox after its targeted verification; place a checkpoint
-      before downstream work depends on a changed contract. Include one final full-diff release
+      wave heading with a unique `<!-- openspec-wave:<id> -->`. End each wave with targeted
+      verification. Add at most one intermediate `openspec-review:wave` checkbox as the last task
+      only when inspected material risk or downstream work depends on the changed contract; state
+      the concrete trigger and do not add a reviewer merely because a wave, task group, file, or
+      checkbox exists. Include one final full-diff release
       review checkbox after the last wave. Use numbered headings and `- [ ] X.Y` checkboxes.
       Every task-like numbered N.M line must be a checkbox; do not hide roadmap, planning,
       or implementation work as plain text outside the task runner. Keep this change to one coherent
@@ -151,12 +153,24 @@ apply:
     solely by declaration type. Do not reorganize adjacent legacy code incidentally. A material
     ownership, namespace, or registration restructure requires accepted evidence-heavy scope and
     architecture review; consumer-specific examples remain local authority. Then implement one
-    semantic wave at a time and capture layer-appropriate evidence. At each wave checkpoint, run targeted checks, automatically dispatch and await an independent
-    read-only review before dependent work, and continue after a passing review. A validated High finding blocks the next wave;
-    resolve a validated Medium finding or obtain explicit user disposition. Re-review affected
-    findings after fixes. Run the final full-diff review before release; the last wave review may
-    satisfy it only if the reviewer declared full pending-diff coverage, checked requirements, and
-    exclusions, and any later material diff makes it stale. Reopen affected tasks and add a remediation
+    semantic wave at a time and capture layer-appropriate evidence. Run targeted checks for every
+    wave. Dispatch an intermediate independent read-only reviewer only at a planned material-risk
+    or dependency checkpoint, after its covered tasks are complete, required deterministic checks
+    including CI have finished, and the changed-file inventory is stable. A pre-CI, per-file, or
+    wave-existence review cannot satisfy the checkpoint. Continue after a passing review. A validated
+    High finding blocks the next dependent work; resolve a validated Medium finding or obtain explicit
+    user disposition. Consolidate related fixes and, when practical, return them through one targeted
+    continuation with the existing reviewer. Classify later deltas against reviewed coverage: behavior,
+    public-contract, auth/security, persistent-data, transaction, external-effect, migration/rollback,
+    or adjacent reviewed-contract changes stale affected coverage; a mechanical or evidence-only delta
+    with sufficient deterministic proof does not automatically stale unaffected coverage. Repeat a full
+    review only for material cross-wave or overall-risk expansion. Authorized non-production test or
+    staging deployment used to obtain evidence still requires explicit authority, rollback, bounded scope,
+    and risk-proportionate preflight, but does not require the final release review merely because it is a
+    deploy. Run the final full-diff review after required test/staging evidence and before production release
+    or deployment; the last intermediate review may satisfy it only if the reviewer declared full pending-diff
+    coverage, checked requirements and exclusions, and no later material delta affected that coverage.
+    Reopen affected tasks and add a remediation
     wave after validated findings. Reconcile unambiguous in-scope drift automatically; pause on a new
     unknown only when it requires a user-owned decision. External effects still require their separate authority and GO gate.
     Before any production edit, run `$architecture-review` against the inspected baseline and

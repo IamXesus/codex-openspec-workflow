@@ -16,7 +16,7 @@
 - Before tasks, before reporting planning complete, and before apply, run the bundled fail-closed validator. Then perform the read-only semantic and traceability audit required by the workflow skill.
 - Classify architecture impact from the inspected production baseline. Use `evidence-heavy` when a planned change touches an existing production file over 1000 lines, expects roughly 250 or more production lines in one file, or adds multiple independently testable responsibilities.
 - For material impact, record component ownership and transaction boundaries in design, then require an independent `$architecture-review` and the bundled fail-closed architecture validator before tasks and production edits. Existing large components do not authorize unrelated cleanup or new unowned responsibilities.
-- Review coherent heavy implementation waves and run one final full-diff review before release. Do not equate artifact existence, checked tasks, green tests, release readiness, and deployment.
+- Keep semantic heavy waves separate from review triggers. Run intermediate independent review only after stable targeted verification when a material risk or downstream dependency justifies it; do not review every wave, file, checkbox, or mechanical remediation. Consolidate fixes into targeted continuation of the existing review cycle when practical. Non-production test/staging effects retain explicit GO, rollback, scope, and preflight but may produce evidence before the mandatory current full-diff review for production release/deployment. Do not equate artifact existence, checked tasks, green tests, release readiness, and deployment.
 
 ## Shared Code Placement
 

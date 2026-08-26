@@ -6,7 +6,7 @@ UI contract: none
 ## 1. <!-- openspec-wave:wave-1 --> Semantic implementation wave
 
 - [ ] 1.1 <!-- openspec-trace: requirements=REQ-001; verification=<minimum-sufficient existing/shared/new/manual check, distinct risk, and expected result> --> <!-- Minimal task derived from accepted requirements and design; one check may cover several traced tasks or requirements -->
-- [ ] 1.2 <!-- openspec-review:wave --> Wave checkpoint: targeted verification passed and blocking independent review findings resolved.
+<!-- Add at most one openspec-review:wave checkbox here only when an inspected material risk or downstream dependency requires review before later work. Make it the last task in the wave and state Trigger: <exact boundary>. Ordinary waves rely on targeted verification and later full-diff review. -->
 
 ## 2. Release review
 

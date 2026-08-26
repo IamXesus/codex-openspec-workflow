@@ -25,9 +25,11 @@ A clear software-change request that routes through OpenSpec proceeds by default
 
 The canonical controller drives the official OpenSpec `status` and `instructions` loop directly; it does not skip artifacts or fork the CLI-generated single-step skills. A proposed decision or open question still blocks downstream work until accepted authority exists.
 
+Evidence-heavy plans use semantic waves for implementation and targeted verification, not as an automatic reviewer count. Intermediate independent review is reserved for a named material-risk or downstream-dependency boundary after its covered scope and required checks are stable; every change still retains one final full-pending-diff review before production release or deployment. Related findings are consolidated into a targeted continuation when practical, and deterministic mechanical deltas do not automatically invalidate unaffected review coverage. Authorized non-production test/staging effects keep their own GO, rollback, scope, and preflight gates but may run before the final release review when they are required to produce verification evidence.
+
 ## Version and update contract
 
-`package.json` is the single version source. The current package is `1.3.0`; `package-lock.json` must match it. Shared-root receipts record that SemVer and hashes for every package-owned skill and schema file. When a consumer is selected, the managed `AGENTS.md` block carries its own per-consumer policy receipt with the workflow version and normalized policy hash. `check` reports:
+`package.json` is the single version source. The current package is `1.4.0`; `package-lock.json` must match it. Shared-root receipts record that SemVer and hashes for every package-owned skill and schema file. When a consumer is selected, the managed `AGENTS.md` block carries its own per-consumer policy receipt with the workflow version and normalized policy hash. `check` reports:
 
 - `current` when shared roots, selected consumer policy, and canonical project-bootstrap structure are current (the separately reported semantic audit may still be pending);
 - `stale` for safe-to-update shared version/content drift, consumer schema shadowing, or an existing project config/audit that needs manual reconciliation;
@@ -41,13 +43,13 @@ The package never pulls Git. Update the central checkout by your normal Git work
 Preview the first Orca installation. Initial adoption requires a dedicated empty backup root, even in dry-run examples so the exact command can be promoted safely:
 
 ```powershell
-.\scripts\install.ps1 -Target orca -ConsumerRepo C:\projects\consumer -BackupRoot C:\workflow-backups\openspec-1.3.0 -DryRun -Json
+.\scripts\install.ps1 -Target orca -ConsumerRepo C:\projects\consumer -BackupRoot C:\workflow-backups\openspec-1.4.0 -DryRun -Json
 ```
 
 Install after the preview and the required owner approval for the persistent shared-profile write:
 
 ```powershell
-.\scripts\install.ps1 -Target orca -ConsumerRepo C:\projects\consumer -BackupRoot C:\workflow-backups\openspec-1.3.0
+.\scripts\install.ps1 -Target orca -ConsumerRepo C:\projects\consumer -BackupRoot C:\workflow-backups\openspec-1.4.0
 ```
 
 Check the installed package and resolve effective schemas in a consumer without editing it:
@@ -61,8 +63,8 @@ For Codex or Omnigent, replace `orca` with `codex` or `omnigent`. Codex honors `
 ## Install on POSIX
 
 ```sh
-./scripts/install.sh install --target orca --consumer-repo /path/to/consumer --backup-root "$HOME/workflow-backups/openspec-1.3.0" --dry-run --json
-./scripts/install.sh install --target orca --consumer-repo /path/to/consumer --backup-root "$HOME/workflow-backups/openspec-1.3.0"
+./scripts/install.sh install --target orca --consumer-repo /path/to/consumer --backup-root "$HOME/workflow-backups/openspec-1.4.0" --dry-run --json
+./scripts/install.sh install --target orca --consumer-repo /path/to/consumer --backup-root "$HOME/workflow-backups/openspec-1.4.0"
 ./scripts/install.sh check --target orca --consumer-repo /path/to/consumer --json
 ```
 
