@@ -327,6 +327,58 @@ class SharedPlacementPolicyTests(unittest.TestCase):
             reviewer,
         )
 
+        workflow = normalized("skills/openspec-workflow/SKILL.md")
+        for concept in (
+            "default to one final full pending diff code review",
+            "does not remove the separate pre implementation architecture review",
+            "early read only critic is advisory",
+            "assigns a stable id",
+            "complete blocking finding ledger in the session",
+            "cheapest faithful focused check",
+            "coherent stable batch",
+        ):
+            self.assertIn(concept, workflow, f"workflow review economy lacks {concept!r}")
+
+        policy = normalized("policy/AGENTS.fragment.md")
+        for concept in (
+            "default to one final full pending diff code review",
+            "pre implementation architecture review",
+            "early critic is advisory",
+            "stable ids to every high and medium",
+            "complete disposition ledger in the session",
+            "coherent stable batch instead of after every fix",
+        ):
+            self.assertIn(concept, policy, f"managed policy lacks {concept!r}")
+
+        guardrails = normalized("skills/coding-guardrails/SKILL.md")
+        for concept in (
+            "early critic as advisory input only",
+            "default openspec implementation completion to one final full pending diff code review",
+            "later work depends on an inspected material boundary",
+            "session only ledger",
+            "ledger for every reviewer assigned",
+            "cheapest faithful focused check",
+            "coherent stable slice",
+        ):
+            self.assertIn(concept, guardrails, f"implementation guardrails lack {concept!r}")
+
+        self.assertIn("стабильный id", reviewer)
+        self.assertIn("все id уровня `high` и `medium`", reviewer)
+        self.assertIn("completion review по умолчанию покрывает полный pending diff", reviewer)
+        self.assertIn("intermediate review допустим только на material boundary", reviewer)
+        self.assertIn("явно назови review advisory", reviewer)
+        self.assertIn("не создаёт review-after-every-fix цикл", reviewer)
+        self.assertIn("одну пачку связанных безопасных исправлений", reviewer)
+        self.assertIn("самый дешёвый достоверный focused check", reviewer)
+        self.assertIn("ci или full suite запущен на цельном стабильном batch", reviewer)
+
+        for relative in self.schemas:
+            schema = normalized(relative)
+            with self.subTest(relative=relative, rule="review-and-ci-economy"):
+                self.assertIn("early critic is advisory", schema)
+                self.assertIn("stable id", schema)
+                self.assertIn("coherent stable", schema)
+
     def test_posix_wrapper_is_kept_with_lf_endings(self) -> None:
         self.assertIn("*.sh text eol=lf", read(".gitattributes").splitlines())
         self.assertNotIn(b"\r\n", (ROOT / "scripts" / "install.sh").read_bytes())

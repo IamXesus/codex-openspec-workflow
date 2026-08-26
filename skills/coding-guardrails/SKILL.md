@@ -54,7 +54,16 @@ Build custom only when existing options are missing, too risky, too heavy, incom
 - Mock external boundaries, not the application's own behavior. Use the real database provider for provider-specific queries, constraints, transactions, concurrency, or migrations.
 - During ordinary work, merge or remove overlapping legacy tests only in the touched feature slice and only after replacement evidence passes. Whole-suite consolidation requires a separate explicit request; do not turn a feature change into unrelated test cleanup.
 - Do not optimize to fixed test-count, coverage, test-to-production LOC, or mandatory mutation quotas. A full-suite run is a final regression gate, not a reason to add a test per task.
+- During diagnosis and microfix iteration, use the cheapest faithful focused check for the current failure. Batch related safe corrections into a coherent stable slice, then run required CI or the full regression suite for that slice; do not publish a diagnostic commit or repeat the full suite after every microfix by default.
 - Do not create a separate verification artifact or per-test metadata table for this selection.
+
+## Review Follow-Up Gate
+
+- Review economy changes code-review cadence only; it does not replace the pre-implementation architecture review and fail-closed architecture validator required by a material evidence-heavy design.
+- Default OpenSpec implementation completion to one final full-pending-diff code review. Add an intermediate code-review checkpoint only when later work depends on an inspected material boundary, not merely because a wave, task, file, or remediation exists.
+- Treat an early critic as advisory input only. It does not satisfy an OpenSpec intermediate or final checkpoint and does not create a review-after-every-fix loop.
+- Keep a session-only ledger for every reviewer-assigned `High` and `Medium` id. Before requesting targeted continuation, record each id as fixed, disputed with evidence, or awaiting an explicit user disposition; never silently drop or downgrade a blocking finding.
+- Consolidate related safe remediations and return them to the same reviewer in one targeted continuation when practical. A material post-review delta still stales its affected coverage; repeat the complete review only when the overall risk surface or multiple waves materially change.
 
 ## Dependency Gate
 

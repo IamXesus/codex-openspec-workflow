@@ -55,7 +55,7 @@ class WorkflowPackageTests(unittest.TestCase):
         return argparse.Namespace(**values)
 
     def test_version_metadata_is_single_valid_source(self) -> None:
-        self.assertEqual("1.4.0", self.version)
+        self.assertEqual("1.5.0", self.version)
         package.validate_lock_metadata(self.root)
         metadata_root = self.temp / "metadata"
         metadata_root.mkdir()
@@ -468,13 +468,17 @@ class WorkflowPackageTests(unittest.TestCase):
             "but does not accept proposed decisions."
         )
         current_review = (
-            "- Keep semantic heavy waves separate from review triggers. Run intermediate independent review only "
-            "after stable targeted verification when a material risk or downstream dependency justifies it; do not "
-            "review every wave, file, checkbox, or mechanical remediation. Consolidate fixes into targeted continuation "
-            "of the existing review cycle when practical. Non-production test/staging effects retain explicit GO, "
-            "rollback, scope, and preflight but may produce evidence before the mandatory current full-diff review for "
-            "production release/deployment. Do not equate artifact existence, checked tasks, green tests, release "
-            "readiness, and deployment."
+            "- Keep semantic heavy waves separate from review triggers. Default to one final full-pending-diff code "
+            "review; add an intermediate code review only after stable targeted verification when later work depends "
+            "on an inspected material boundary. This does not remove the separate pre-implementation architecture "
+            "review for a material design. An early critic is advisory and cannot satisfy a checkpoint. Reviewers "
+            "assign stable ids to every High and Medium finding; retain the complete disposition ledger in the session, "
+            "batch safe fixes, and use one targeted continuation with the same reviewer when practical. During microfix "
+            "iteration use the cheapest faithful focused check, then run required CI or the full suite on the coherent "
+            "stable batch instead of after every fix. Non-production test/staging effects retain explicit GO, rollback, "
+            "scope, and preflight but may produce evidence before the mandatory current full-diff review for production "
+            "release/deployment. Do not equate artifact existence, checked tasks, green tests, release readiness, and "
+            "deployment."
         )
         legacy_review = (
             "- Review coherent heavy implementation waves and run one final full-diff review before release. "

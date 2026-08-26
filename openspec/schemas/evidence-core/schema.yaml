@@ -69,6 +69,8 @@ artifacts:
       Ordinary work may consolidate overlapping legacy tests only in the touched feature slice
       after replacement evidence passes; whole-suite consolidation requires a separate explicit
       request. Do not add a verification artifact, numeric quota, or mandatory mutation gate.
+      Plan focused diagnosis first and required CI or full-suite regression once the coherent
+      implementation batch is stable; do not plan a broad run or review after every microfix.
       For work that creates or materially moves a production type, derive a placement task or
       verification that inspects neighboring feature structure, namespaces or module boundaries,
       dependency registration, and relevant architecture tests. Plan placement by feature and
@@ -117,7 +119,9 @@ apply:
     distinct risks at their faithful layer. Keep mocks at external boundaries. Consolidate legacy
     tests only inside the touched feature slice after replacement evidence passes; repository-wide
     consolidation requires separate explicit scope. Treat the full suite as a final regression gate,
-    not a test-count target. Before creating or materially moving a production type,
+    not a test-count target. During microfix iteration use the cheapest faithful focused check,
+    batch related safe corrections, and run required CI or the full suite on the coherent stable
+    batch rather than after every fix. Before creating or materially moving a production type,
     inspect neighboring feature structure,
     namespaces or module boundaries, dependency registration, and relevant architecture tests.
     Place code by feature and cohesive responsibility; use responsibility-named subfolders only
@@ -126,8 +130,10 @@ apply:
     ownership, namespace, or registration restructure requires accepted evidence-heavy scope and
     architecture review; consumer-specific examples remain local authority. After targeted
     verification, dispatch and await one independent read-only review before marking the change complete or
-    handing it off; continue automatically after it passes, resolve blocking findings, and re-review affected
-    contracts after fixes. If no independent reviewer is available, report the gate as not run and
+    handing it off. An early critic is advisory and cannot satisfy this checkpoint. The reviewer assigns
+    stable ids to every High and Medium finding; retain every disposition in the session, batch safe fixes,
+    and use one targeted continuation with the same reviewer when practical. Re-review affected contracts
+    after material fixes. If no independent reviewer is available, report the gate as not run and
     do not complete or hand off the change without explicit user disposition. A reviewer must declare
     full or partial coverage, checked requirements, and exclusions; partial coverage cannot close the
     final checkpoint. Reopen affected tasks after a validated finding. Reconcile unambiguous in-scope

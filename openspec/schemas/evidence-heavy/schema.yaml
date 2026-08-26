@@ -89,6 +89,8 @@ artifacts:
       Ordinary work may consolidate overlapping legacy tests only in the touched feature slice
       after replacement evidence passes; whole-suite consolidation requires a separate explicit
       request. Do not add a verification artifact, numeric quota, or mandatory mutation gate.
+      Plan focused diagnosis first and required CI or full-suite regression once the coherent
+      implementation batch is stable; do not plan a broad run or review after every microfix.
       For work that creates or materially moves a production type, derive a placement task or
       verification that inspects neighboring feature structure, namespaces or module boundaries,
       dependency registration, and relevant architecture tests. Plan placement by feature and
@@ -145,7 +147,9 @@ apply:
     distinct risks at their faithful layer. Keep mocks at external boundaries. Consolidate legacy
     tests only inside the touched feature slice after replacement evidence passes; repository-wide
     consolidation requires separate explicit scope. Treat the full suite as a final regression gate,
-    not a test-count target. Then,
+    not a test-count target. During microfix iteration use the cheapest faithful focused check,
+    batch related safe corrections, and run required CI or the full suite on the coherent stable
+    batch rather than after every fix. Then,
     before creating or materially moving a production type, inspect neighboring feature structure,
     namespaces or module boundaries, dependency registration, and relevant architecture tests.
     Place code by feature and cohesive responsibility; use responsibility-named subfolders only
@@ -154,12 +158,17 @@ apply:
     ownership, namespace, or registration restructure requires accepted evidence-heavy scope and
     architecture review; consumer-specific examples remain local authority. Then implement one
     semantic wave at a time and capture layer-appropriate evidence. Run targeted checks for every
-    wave. Dispatch an intermediate independent read-only reviewer only at a planned material-risk
+    wave. Default implementation completion to one final full-pending-diff code review; this does not
+    remove the separate architecture review required before affected production edits for material
+    architecture impact. An early critic is advisory and cannot satisfy a checkpoint. Dispatch an
+    intermediate independent read-only reviewer only at a planned material-risk
     or dependency checkpoint, after its covered tasks are complete, required deterministic checks
     including CI have finished, and the changed-file inventory is stable. A pre-CI, per-file, or
     wave-existence review cannot satisfy the checkpoint. Continue after a passing review. A validated
     High finding blocks the next dependent work; resolve a validated Medium finding or obtain explicit
-    user disposition. Consolidate related fixes and, when practical, return them through one targeted
+    user disposition. Require the reviewer to assign a stable id to every High and Medium finding,
+    retain the complete disposition ledger in the session, and block targeted continuation while any
+    such id is omitted or silently downgraded. Consolidate related fixes and, when practical, return them through one targeted
     continuation with the existing reviewer. Classify later deltas against reviewed coverage: behavior,
     public-contract, auth/security, persistent-data, transaction, external-effect, migration/rollback,
     or adjacent reviewed-contract changes stale affected coverage; a mechanical or evidence-only delta
