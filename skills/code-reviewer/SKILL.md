@@ -20,13 +20,18 @@ description: "Используй этот навык по умолчанию д�
 5. Проверь пять осей: correctness, readability/simplicity, architecture, security, performance.
 6. Проверь миграции, конфигурацию, ошибки, логирование и совместимость.
 7. Для material UI прочитай принятый visual artifact и проверь rendered evidence на тех же theme/viewports/states с репрезентативной формой данных. Не принимай selectors, screenshots-on-disk или unit tests за visual fidelity.
-8. Присвой каждому finding уровень `High`, `Medium` или `Low` и явно проверь доказательства проверки.
+8. Присвой каждому finding уровень `High`, `Medium` или `Low`. Дай каждому `High` и `Medium` стабильный id, который сохраняется при targeted re-review, и явно проверь доказательства проверки.
 9. Проверь test delta: какие проверки добавлены, изменены, переиспользованы или удалены; какой отдельный риск они ловят; не дублируют ли existing evidence; выбран ли самый дешёвый достоверный уровень; можно ли безопасно объединить проверки в затронутом feature-срезе.
 10. Если ревью без правок, не меняй файлы.
+
+Для OpenSpec checkpoint начинай review только на стабильном заявленном scope после требуемых deterministic checks, включая CI когда он применим. Completion review по умолчанию покрывает полный pending diff; intermediate review допустим только на material boundary, от которой зависит дальнейшая работа. Если тебя вызвали раньше как critic, явно назови review advisory и не объявляй checkpoint `PASS`; такая диагностика не создаёт review-after-every-fix цикл.
+
+При targeted re-review ожидай одну пачку связанных безопасных исправлений и сохрани прежние finding ids. Проверяй, что во время microfix iteration использовался самый дешёвый достоверный focused check, а требуемый CI или full suite запущен на цельном стабильном batch; не требуй broad run или отдельное review после каждого исправления.
 
 ## Принципы
 
 - Findings важнее summary.
+- Summary обязан перечислять все id уровня `High` и `Medium`; не объединяй, не опускай и не понижай finding без явного обоснования. При повторной проверке используй прежние id и дай disposition по каждому из них.
 - Каждый finding должен иметь конкретный риск и воспроизводимую причину.
 - Не придирайся к стилю, если это не влияет на поддержку или баги.
 - Отмечай overengineering, speculative abstraction и custom build вместо существующего helper/SDK/OSS как риск поддержки, если это влияет на изменение.
