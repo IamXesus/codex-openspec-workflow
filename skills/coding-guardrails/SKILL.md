@@ -49,6 +49,8 @@ Build custom only when existing options are missing, too risky, too heavy, incom
 ## Verification Economy Gate
 
 - A requirement, scenario, implementation task, or changed file does not imply a new automated test. Select one minimum-sufficient evidence set for the distinct risks and allow the same concrete check to cover several tasks or requirements.
+- Before adding a test, name the reachable failure mode it would catch. A test is important when it protects a critical user/business outcome or a distinct security, authorization, data-integrity, transaction, provider-semantics, concurrency, retry, migration, or external-contract risk. If no distinct failure mode is named, do not add the test.
+- Use this order: reuse an existing check; extend or parameterize the nearest check; add one primary vertical/integration check for the observable outcome; add lower-level or browser checks only for risks that the primary check cannot faithfully prove. A method, file, checkbox, or code branch is not by itself a reason for a test.
 - Prefer an existing check, then a focused extension or parameterization, before adding a new test. A new automated test must detect a distinct reachable regression that the existing suite does not already prove.
 - Prefer one stable real vertical slice as primary acceptance evidence for a critical observable flow when practical. Add unit, real-provider integration, contract, browser, or runtime checks only when they are the cheapest faithful way to prove a separate risk.
 - Mock external boundaries, not the application's own behavior. Use the real database provider for provider-specific queries, constraints, transactions, concurrency, or migrations.
@@ -96,6 +98,8 @@ If a larger refactor is necessary, separate it from behavior changes or explain 
 ## Subagent Gate
 
 Use subagents only when they materially improve throughput or evidence quality and their work can run independently. Non-trivial size alone is not a trigger.
+
+Default to one primary executor for a cohesive task. Do not spawn implementation or reviewer subagents before the task has been decomposed into genuinely independent work with explicit file ownership and a concrete expected output. A reviewer normally starts only after the primary diff and its required checks are stable; parallel waiting reviewers are not a safety mechanism.
 
 Good uses:
 

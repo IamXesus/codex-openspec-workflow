@@ -69,6 +69,10 @@ artifacts:
       Ordinary work may consolidate overlapping legacy tests only in the touched feature slice
       after replacement evidence passes; whole-suite consolidation requires a separate explicit
       request. Do not add a verification artifact, numeric quota, or mandatory mutation gate.
+      Before creating a test, name the reachable failure mode and why existing evidence does not
+      prove it; a task, file, method, branch, or checkbox alone is not sufficient. Default to one
+      primary executor for a cohesive change and dispatch subagents only for independently owned
+      work with a concrete output after scope is explicit.
       Plan focused diagnosis first and required CI or full-suite regression once the coherent
       implementation batch is stable; do not plan a broad run or review after every microfix.
       For work that creates or materially moves a production type, derive a placement task or
@@ -112,7 +116,11 @@ apply:
     never an automatic implementation base. Then implement only accepted requirements and
     record branch/HEAD/upstream and the dirty baseline before editing. Mark tasks complete only as
     layer-appropriate evidence is produced. Implement the planned minimum-sufficient evidence set
-    without adding a test merely because a task or scenario exists. Reuse, extend, or parameterize
+    without adding a test merely because a task or scenario exists. Before creating a test, name the
+    reachable failure mode and why existing evidence does not prove it; a task, file, method, branch,
+    or checkbox alone is not sufficient. Default to one primary executor for a cohesive change and
+    dispatch subagents only for independently owned work with a concrete output after scope is explicit.
+    Reuse, extend, or parameterize
     suitable checks first; one concrete check may cover several traced tasks when it proves their
     combined result. Use a stable real vertical slice as primary acceptance evidence when practical,
     and add focused unit, real-provider integration, contract, browser, or runtime checks only for

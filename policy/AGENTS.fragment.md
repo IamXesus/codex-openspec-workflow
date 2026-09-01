@@ -5,6 +5,8 @@
 - A clear request to change or implement software may proceed continuously through required planning, local implementation, verification, and review. An explicit plan-only, review-only, diagnosis-only, or other narrower request does not authorize work beyond that scope. Implementation never authorizes an external, destructive, production, financial, or persistent-data effect.
 - Accepted requirements require inspected evidence or an explicit user decision. Blocking questions stop task creation and implementation.
 - Prefer the smallest coherent diff and existing project patterns. Do not create adjacent artifacts, abstractions, dependencies, or follow-up work without a current requirement.
+- Before adding a test, name the reachable failure mode. Add or keep a test only for a critical user/business outcome or a distinct security, authorization, data-integrity, transaction, provider, concurrency, retry, migration, or external-contract risk; a task, file, method, branch, or checkbox alone is not sufficient. Reuse or extend existing evidence before creating another test.
+- Default to one primary executor for a cohesive task. Spawn subagents only for independently owned work with a concrete output; do not start reviewers while the implementation scope is still moving.
 
 ## OpenSpec Routing
 

@@ -36,6 +36,8 @@ POLICY_SEMVER = re.compile(
 )
 LEGACY_UNMANAGED_POLICY_HASHES = {
     "51abbf683aaa37003b191a9b90ee7d2cf575551594629913eab3cb2b2fe519f7": "1.0.0",
+    # 1.0.0 legacy policy after the 1.5.x managed-policy wording was refreshed.
+    "cd51141ff6c615bb6b3fe738870d5977fa717981876e1e56fabfd806545436f1": "1.0.0",
 }
 
 
