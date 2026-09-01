@@ -213,6 +213,7 @@ class SharedPlacementPolicyTests(unittest.TestCase):
                     "existing check",
                     "vertical slice",
                     "distinct risk",
+                    "failure mode",
                     "external boundaries",
                     "real provider",
                     "touched feature slice",
@@ -336,6 +337,8 @@ class SharedPlacementPolicyTests(unittest.TestCase):
             "complete blocking finding ledger in the session",
             "cheapest faithful focused check",
             "coherent stable batch",
+            "one primary executor",
+            "failure mode",
         ):
             self.assertIn(concept, workflow, f"workflow review economy lacks {concept!r}")
 
@@ -359,6 +362,8 @@ class SharedPlacementPolicyTests(unittest.TestCase):
             "ledger for every reviewer assigned",
             "cheapest faithful focused check",
             "coherent stable slice",
+            "one primary executor",
+            "failure mode",
         ):
             self.assertIn(concept, guardrails, f"implementation guardrails lack {concept!r}")
 
@@ -378,6 +383,12 @@ class SharedPlacementPolicyTests(unittest.TestCase):
                 self.assertIn("early critic is advisory", schema)
                 self.assertIn("stable id", schema)
                 self.assertIn("coherent stable", schema)
+                self.assertIn("failure mode", schema)
+                self.assertIn("one primary executor", schema)
+
+        policy = normalized("policy/AGENTS.fragment.md")
+        self.assertIn("failure mode", policy)
+        self.assertIn("one primary executor", policy)
 
     def test_posix_wrapper_is_kept_with_lf_endings(self) -> None:
         self.assertIn("*.sh text eol=lf", read(".gitattributes").splitlines())
