@@ -1,6 +1,8 @@
 <!-- openspec-review-contract:v3 -->
 UI contract: none
 
+<!-- Keep the accepted scope frozen. Reviewer READY is coverage evidence, not approval for architecture, ACL/security, persistent-data, transaction, deletion, migration, or external-effect changes. -->
+
 <!-- For material Architecture Impact add exactly one pre-implementation checkbox before affected work. Use marker openspec-review:architecture and record Coverage, Growth, Ownership, Findings, Exclusions, Reviewer, and Verdict: READY when complete. -->
 
 ## 1. <!-- openspec-wave:wave-1 --> Semantic implementation wave

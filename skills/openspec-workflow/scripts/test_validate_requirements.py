@@ -660,12 +660,34 @@ class RequirementValidationTests(unittest.TestCase):
         tasks = ('<!-- openspec-review-contract:v3 -->\nUI contract: none\n\n'
                  '- [ ] 1.1 Update tooling. <!-- openspec-trace: requirements=none; verification=run tool self-test -->\n'
                  '- [ ] 1.2 <!-- openspec-review:final --> Final checkpoint.\n')
-        proposal = '## Evidence\n- USER-001: requested tooling update.\n\n## UI Contract\n**Mode:** none\n'
+        proposal = ('## Evidence\n- USER-001: requested tooling update.\n\n## UI Contract\n**Mode:** none\n\n'
+                    '<!-- openspec-skip-specs-contract:v1 -->\n**Behavior delta:** none\n'
+                    '**Contract/data/security delta:** none\n')
         change = self.make_change('', proposal=proposal, tasks=tasks)
         (change / 'specs' / 'sample' / 'spec.md').unlink()
         metadata = change / '.openspec.yaml'
         metadata.write_text('schema: evidence-core\nskip_specs: true\n', encoding='utf-8')
         self.assertEqual([], validate_change(change))
+
+    def test_v3_skip_specs_requires_no_behavior_delta_marker(self):
+        tasks = ('<!-- openspec-review-contract:v3 -->\nUI contract: none\n\n'
+                 '- [ ] 1.1 Update tooling. <!-- openspec-trace: requirements=none; verification=run tool self-test -->\n')
+        change = self.make_change('', proposal='## Evidence\n- USER-001: tooling.\n', tasks=tasks)
+        (change / 'specs' / 'sample' / 'spec.md').unlink()
+        (change / '.openspec.yaml').write_text('schema: evidence-core\nskip_specs: true\n', encoding='utf-8')
+        errors = validate_change(change)
+        self.assertTrue(any('skip-specs-contract' in error for error in errors))
+
+    def test_v3_skip_specs_marker_must_declare_contracts_unchanged(self):
+        tasks = ('<!-- openspec-review-contract:v3 -->\nUI contract: none\n\n'
+                 '- [ ] 1.1 Update tooling. <!-- openspec-trace: requirements=none; verification=run tool self-test -->\n')
+        proposal = ('## Evidence\n- USER-001: tooling.\n\n<!-- openspec-skip-specs-contract:v1 -->\n'
+                    '**Behavior delta:** none\n**Contract/data/security delta:** changed\n')
+        change = self.make_change('', proposal=proposal, tasks=tasks)
+        (change / 'specs' / 'sample' / 'spec.md').unlink()
+        (change / '.openspec.yaml').write_text('schema: evidence-core\nskip_specs: true\n', encoding='utf-8')
+        errors = validate_change(change)
+        self.assertTrue(any('Contract/data/security delta' in error for error in errors))
 
     def test_v3_none_trace_requires_skip_specs(self):
         tasks = ('<!-- openspec-review-contract:v3 -->\nUI contract: none\n\n'

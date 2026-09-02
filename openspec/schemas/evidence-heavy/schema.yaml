@@ -21,7 +21,9 @@ artifacts:
       the displayed DEC ids; partial approval leaves the rest proposed.
       Do not invent a capability to satisfy validation. For a pure refactor, tooling, or
       documentation/operations change with no behavior delta, set skip_specs: true in
-      .openspec.yaml.
+      .openspec.yaml and put the structured no-behavior-delta marker from the proposal template
+      in proposal.md. Do not use skip_specs for observable, public-contract, persistent-data,
+      security, transaction, migration, or external-effect changes.
       Preserve `<!-- openspec-architecture-contract:v1 -->` and inspect likely production
       components before choosing exactly one `Architecture impact: none|material`. Use
       `material` when an existing production file is over 1000 lines, expected growth is
@@ -92,7 +94,10 @@ artifacts:
       Before creating a test, name the reachable failure mode and why existing evidence does not
       prove it; a task, file, method, branch, or checkbox alone is not sufficient. Default to one
       primary executor for a cohesive change and dispatch subagents only for independently owned
-      work with a concrete output after scope is explicit.
+      work with a concrete output after scope is explicit; never block the primary path waiting
+      for a subagent. A reviewer is read-only and advisory: its READY verdict confirms only
+      declared coverage and cannot authorize a new architecture, ACL/security, persistent-data,
+      transaction, deletion, migration, rollback, or external-effect strategy.
       Plan focused diagnosis first and required CI or full-suite regression once the coherent
       implementation batch is stable; do not plan a broad run or review after every microfix.
       For work that creates or materially moves a production type, derive a placement task or
@@ -140,14 +145,14 @@ apply:
     Do not substitute native status/validation; any artifact edit makes an earlier pass stale.
     A nonzero exit remains fail-closed: diagnose and correct unambiguous in-scope agent-authored
     artifacts, rerun the gate, and pause only when correction needs user authority or a material
-    decision, or cannot be safely resolved. In a fresh session first reselect this change, reject v1/v2 expansion,
-    fetch upstream read-only, and record branch/HEAD/upstream, upstream HEAD, dirty baseline, and
+    decision, or cannot be safely resolved. In a fresh session or after context compaction first reselect this change, reject v1/v2 expansion,
+    fetch upstream read-only, and record branch/HEAD/upstream, upstream HEAD, dirty baseline, divergence, and explicit execution constraints, and
     divergence. Reconcile referenced old commits as evidence/artifacts, never an automatic
     implementation base. After a pass, implement the planned minimum-sufficient evidence set
     without adding a test merely because a task or scenario exists. Before creating a test, name the
     reachable failure mode and why existing evidence does not prove it; a task, file, method, branch,
     or checkbox alone is not sufficient. Default to one primary executor for a cohesive change and
-    dispatch subagents only for independently owned work with a concrete output after scope is explicit.
+    dispatch subagents only for independently owned work with a concrete output after scope is explicit; never wait on a subagent as a prerequisite.
     Reuse, extend, or parameterize
     suitable checks first; one concrete check may cover several traced tasks when it proves their
     combined result. Use a stable real vertical slice as primary acceptance evidence when practical,

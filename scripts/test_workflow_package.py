@@ -493,6 +493,17 @@ class WorkflowPackageTests(unittest.TestCase):
             .rstrip("\r\n")
             + "\n"
         )
+        # The fixture represents the known pre-boundary policy copy. Remove only the
+        # newly added execution-boundary lines so the legacy-upgrade assertion remains
+        # about package behavior rather than duplicating the current policy body.
+        for addition in (
+            "- A reviewer is read-only and advisory: `READY` confirms only the declared coverage. It never accepts a new architecture, ACL/security, persistent-data, transaction, deletion, migration, or external-effect strategy. A remediation that crosses such a boundary is a proposed scope change and pauses before implementation.\n",
+            "- After a fresh session or context compaction, re-read the current user authority, active artifacts, open questions, branch/HEAD/upstream/dirty state, and explicit execution constraints. Summaries, old commits, and reviewer suggestions are evidence, not authority.\n",
+            "- Treat explicit execution constraints such as CI-only backend work as hard boundaries. Do not invoke a forbidden local command, and verify process completion or absence before claiming a stopped background command.\n",
+            "- `skip_specs: true` is only for a pure refactor, tooling, or documentation/operations change with no observable, public-contract, persistent-data, security, transaction, migration, or external-effect delta; require the structured no-behavior marker from the shared schema.\n",
+            "- Use low effort as the default hint for direct small work and medium for evidence-heavy, architecture/security/persistent-data, and release review. Effort is a speed/quality hint only; it never changes route, scope, authority, evidence, review, CI, or GO requirements.\n",
+        ):
+            legacy = legacy.replace(addition, "")
         agents = self.consumer / "AGENTS.md"
         agents.write_text(legacy, encoding="utf-8")
         package.install(

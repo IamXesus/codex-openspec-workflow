@@ -10,6 +10,12 @@
 
 <!-- Observable changes supported by evidence. -->
 
+<!-- If .openspec.yaml sets skip_specs: true, copy this exact block; delete it otherwise. -->
+<!-- openspec-skip-specs-contract:v1 -->
+**Behavior delta:** none
+**Contract/data/security delta:** none
+<!-- Do not use the block when any observable, public-contract, persistent-data, security, transaction, migration, or external-effect behavior changes. -->
+
 ## Capabilities
 
 ### New Capabilities

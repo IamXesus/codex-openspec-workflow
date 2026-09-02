@@ -40,6 +40,9 @@ TASK_CHECKBOX = re.compile(r"^\s*-\s*\[(?P<state>[ xX])\]\s+")
 SCHEMA_NAME = re.compile(r"(?m)^\s*schema\s*:\s*(?P<name>[A-Za-z0-9_-]+)\s*$", re.IGNORECASE)
 REVIEW_MODE = re.compile(r"(?m)^\s*review_contract\s*:\s*(?P<mode>[A-Za-z0-9_-]+)\s*$", re.IGNORECASE)
 SKIP_SPECS = re.compile(r"(?m)^\s*skip_specs\s*:\s*true\s*$", re.IGNORECASE)
+SKIP_SPECS_MARKER = "<!-- openspec-skip-specs-contract:v1 -->"
+SKIP_BEHAVIOR_NONE = re.compile(r"(?m)^\*\*Behavior delta:\*\*\s*none\s*$", re.IGNORECASE)
+SKIP_CONTRACT_NONE = re.compile(r"(?m)^\*\*Contract/data/security delta:\*\*\s*none\s*$", re.IGNORECASE)
 FINAL_ATTESTATION = re.compile(
     r"Coverage:\s*(?P<coverage>[^;]+);\s*Requirements:\s*(?P<requirements>[^;]+);\s*"
     r"Exclusions:\s*(?P<exclusions>[^;]+);\s*Reviewer:\s*(?P<reviewer>.+?)\s*$",
@@ -666,6 +669,23 @@ def validate_change(change_dir: Path) -> list[str]:
     skip_specs = metadata.is_file() and re.search(
         r"(?m)^\s*skip_specs\s*:\s*true\s*$", metadata.read_text(encoding="utf-8"), re.IGNORECASE
     )
+    if skip_specs:
+        if not proposal.is_file():
+            errors.append("skip_specs: true requires proposal.md with the no-behavior-delta marker")
+        else:
+            proposal_text = proposal.read_text(encoding="utf-8-sig")
+            if SKIP_SPECS_MARKER not in proposal_text:
+                errors.append(
+                    "proposal.md: skip_specs: true requires "
+                    "<!-- openspec-skip-specs-contract:v1 -->"
+                )
+            if not SKIP_BEHAVIOR_NONE.search(proposal_text):
+                errors.append("proposal.md: skip_specs contract requires **Behavior delta:** none")
+            if not SKIP_CONTRACT_NONE.search(proposal_text):
+                errors.append(
+                    "proposal.md: skip_specs contract requires "
+                    "**Contract/data/security delta:** none"
+                )
     spec_dir = change_dir / "specs"
     spec_files = list(spec_dir.rglob("*.md")) if spec_dir.is_dir() else []
     if spec_files and normative_count == 0:

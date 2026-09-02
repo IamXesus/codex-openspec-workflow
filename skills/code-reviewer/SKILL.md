@@ -26,6 +26,8 @@ description: "Используй этот навык по умолчанию д�
 
 Для OpenSpec checkpoint начинай review только на стабильном заявленном scope после требуемых deterministic checks, включая CI когда он применим. Completion review по умолчанию покрывает полный pending diff; intermediate review допустим только на material boundary, от которой зависит дальнейшая работа. Если тебя вызвали раньше как critic, явно назови review advisory и не объявляй checkpoint `PASS`; такая диагностика не создаёт review-after-every-fix цикл.
 
+Reviewer `READY` подтверждает только заявленный scope и покрытие. Он не принимает новые требования и не разрешает менять архитектуру, ACL/security, persistent data, transaction ownership, deletion semantics, migrations, rollback или external effects. Если fix direction пересекает такую границу, верни это как proposed scope change с точным риском и не подменяй им accepted contract.
+
 При targeted re-review ожидай одну пачку связанных безопасных исправлений и сохрани прежние finding ids. Проверяй, что во время microfix iteration использовался самый дешёвый достоверный focused check, а требуемый CI или full suite запущен на цельном стабильном batch; не требуй broad run или отдельное review после каждого исправления.
 
 ## Принципы

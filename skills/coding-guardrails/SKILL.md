@@ -15,6 +15,7 @@ Answer in the user's language. For Russian requests, report assumptions, changed
 
 1. Define the requested outcome, externally visible behavior, constraints, and success criteria.
 2. If an OpenSpec change or another accepted spec exists, read it before editing and keep the diff inside accepted requirements and recorded scope.
+   A review finding is evidence, not permission to expand architecture, ACL/security, persistent data, transaction ownership, deletion semantics, migrations, or external effects; record a new decision before crossing such a boundary.
 3. Inspect the existing project before designing new structure: entry points, local helpers, patterns, tests, package conventions, and recent related code.
 4. Prefer existing solutions in this order: local project pattern, local helper/API, official SDK/framework feature, mature OSS/library, then custom code.
 5. Choose the smallest vertical slice that satisfies the request. Do not add features, configurability, abstractions, background jobs, services, or dependencies for imagined future cases.
@@ -22,6 +23,7 @@ Answer in the user's language. For Russian requests, report assumptions, changed
 7. Verify with the narrowest meaningful check first, then a broader check when a shared contract or user-facing path changed.
 8. For OpenSpec work, map verification to its scenarios and report passed, failed, deferred, and not-run facts without inventing a separate evidence document.
 9. State what was verified and what remains unverified.
+10. After a fresh session or context compaction, re-read authority, active artifacts, repository state, and explicit execution constraints before continuing. Never invoke a forbidden local command, and verify process completion or absence before claiming a background command stopped.
 
 ## Code Placement Gate
 
@@ -119,13 +121,14 @@ Avoid subagents for:
 - tasks where explaining the context costs more than doing the work;
 - speculative parallelism without a concrete output.
 
-When using subagents, give each one a bounded task, explicit read/write limits, and expected report format. The main agent owns final root cause, fix strategy, integration, and final communication.
+When using subagents, give each one a bounded task, explicit read/write limits, and expected report format. The main agent owns final root cause, fix strategy, integration, and final communication. Never block the primary path on a subagent; delegation is optional and bounded, so continue independently and validate returned evidence before integrating it.
 
 ## Review Before Finish
 
 Before final response, check:
 
 - The implementation matches the requested behavior, not an expanded version of it.
+- Reviewer `READY` confirms only its declared coverage; it does not approve a new architecture, ACL/security, persistent-data, transaction, deletion, migration, or external-effect strategy.
 - Existing conventions were followed unless a deviation was explained.
 - Custom code was justified against existing/local/OSS options when relevant.
 - Tests or manual checks prove the main behavior and likely regression path.

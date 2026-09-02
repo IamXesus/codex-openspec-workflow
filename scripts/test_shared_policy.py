@@ -377,6 +377,44 @@ class SharedPlacementPolicyTests(unittest.TestCase):
         self.assertIn("самый дешёвый достоверный focused check", reviewer)
         self.assertIn("ci или full suite запущен на цельном стабильном batch", reviewer)
 
+    def test_execution_boundary_contract_prevents_scope_drift_and_blocking_waits(self) -> None:
+        assets = (
+            "policy/AGENTS.fragment.md",
+            "skills/openspec-workflow/SKILL.md",
+            "skills/coding-guardrails/SKILL.md",
+            "skills/code-reviewer/SKILL.md",
+            *self.schemas,
+            *self.task_templates,
+        )
+        combined = "\n".join(read(relative).lower() for relative in assets)
+        for concept in (
+            "reviewer",
+            "ready",
+            "does not",
+            "scope",
+            "acl/security",
+            "persistent-data",
+            "transaction",
+            "migration",
+            "never block",
+            "context compaction",
+            "execution constraints",
+            "skip_specs",
+            "no-behavior-delta",
+            "low effort",
+            "medium",
+        ):
+            self.assertIn(concept, combined, f"execution boundary contract lacks {concept!r}")
+
+        for relative in self.schemas:
+            text = normalized(relative)
+            self.assertIn("structured", text)
+            self.assertIn("no behavior delta", text)
+            self.assertIn("never block", text)
+
+        for relative in self.task_templates:
+            self.assertIn("Keep the accepted scope frozen", read(relative))
+
         for relative in self.schemas:
             schema = normalized(relative)
             with self.subTest(relative=relative, rule="review-and-ci-economy"):
